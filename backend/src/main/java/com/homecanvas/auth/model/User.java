@@ -1,14 +1,21 @@
 package com.homecanvas.auth.model;
 
-import jakarta.persistence.*; 
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import com.homecanvas.iot.model.Device;
 import java.time.LocalDateTime;
 import java.util.List;
-import com.homecanvas.iot.model.Device;
-import com.homecanvas.iot.model.Rule;
+
 
 // User entity representing a user in the system 
 @Entity
 @Table(name = "users") // Maps to the "users" table in the database
+@Data // Lombok annotation to generate getters, setters, toString, equals,
+//  and hashCode methods
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
     // this class represents a user in the system
     @Id // Marks this field as the primary key
@@ -31,37 +38,11 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // One-to-many relationship with Device: a user can have multiple devices
+    // One-to-many relationship with Device, where one user can have many devices. 
+    // The "mappedBy" attribute indicates that the "owner" field in the Device class
+    // is the owner of the relationship. CascadeType.ALL means that any operation 
+    // (persist, merge, remove, refresh, detach) performed on the User entity will
+    //  be cascaded to the associated Device entities.
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Device> devices;
-
-    // One-to-many relationship with Rule: a user can have multiple rules
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Rule> rules;
-
-    // Default constructor required by JPA 
-    public User() {}
-
-    // Getters and Setters 
-    public Integer getId() { return id; } 
-    public void setId(Integer id) { this.id = id; }
-
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public List<Device> getDevices() { return devices; }
-    public void setDevices(List<Device> devices) { this.devices = devices; }
-
-    public List<Rule> getRules() { return rules; }
-    public void setRules(List<Rule> rules) { this.rules = rules; }
-
 }
