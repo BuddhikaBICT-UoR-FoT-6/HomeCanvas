@@ -5,7 +5,7 @@ CREATE DATABASE IF NOT EXISTS home_canvas;
 USE home_canvas;
 
 -- Users Table
-CREATE TABLE users (
+CREATE TABLE users(
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
@@ -26,13 +26,24 @@ CREATE TABLE devices (
 
 -- Sensor Events Table (Time-series data)
 CREATE TABLE sensor_events (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  device_id INT NOT NULL,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  light_level FLOAT,
-  noise_level FLOAT,
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  device_id BIGINT NOT NULL FK REFERENCES devices(id),
+  timestamp DATETIME NOT NULL,
+  light_level INT,
+  noise_level INT,
   motion_detected BOOLEAN,
-  FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+  created_at DATETIME DEFAULT NOW(),
+  INDEX idx_device_timestamp (device_id, timestamp DESC)
+);
+
+-- Action Logs Table
+CREATE TABLE action_logs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  device_id BIGINT NOT NULL FK REFERENCES devices(id),
+  action_type VARCHAR(50) NOT NULL,
+  triggered_at DATETIME NOT NULL,
+  created_at DATETIME DEFAULT NOW(),
+  INDEX idx_device_action (device_id, action_type)
 );
 
 -- Rules Table
@@ -54,13 +65,3 @@ CREATE TABLE rule_conditions (
   FOREIGN KEY (rule_id) REFERENCES rules(id) ON DELETE CASCADE
 );
 
--- Action Logs Table
-CREATE TABLE action_logs (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  rule_id INT NOT NULL,
-  target_device_id INT NOT NULL,
-  action_taken VARCHAR(255) NOT NULL,
-  triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (rule_id) REFERENCES rules(id) ON DELETE CASCADE,
-  FOREIGN KEY (target_device_id) REFERENCES devices(id) ON DELETE CASCADE
-);
