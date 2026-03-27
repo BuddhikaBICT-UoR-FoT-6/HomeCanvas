@@ -4,10 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
+
+@Data // Lombok annotation to generate getters, setters, toString, equals, and hashCode methods
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeviceCommandDTO {
+    // This DTO represents a command sent to a device, such as turning on the fan or LED, or 
+    // displaying a message on the LCD.
 
     private Boolean fanOn;           // true = activate relay for HVAC fan
     private Boolean ledOn;           // true = activate GPIO for LED
