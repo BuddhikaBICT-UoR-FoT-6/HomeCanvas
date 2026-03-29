@@ -1,15 +1,18 @@
 package com.homecanvas.iot.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*; // for REST controller annotations 
+import jakarta.validation.Valid; // for validating incoming request bodies against DTO constraints
 import com.homecanvas.iot.dto.TelemetryPayloadDTO;
 import com.homecanvas.iot.dto.DeviceCommandDTO;
 import com.homecanvas.iot.service.IotService;
 
 @RestController
-@RequestMapping("/api/iot")
+@RequestMapping("/api/iot") // Base path for all endpoints in this controller
 public class IotController {
+    // This controller handles incoming HTTP requests related to IoT device interactions, 
+    // such as receiving telemetry data and sending commands back to the devices. It delegates
+    // the business logic to the IotService.
 
     @Autowired
     private IotService iotService;
