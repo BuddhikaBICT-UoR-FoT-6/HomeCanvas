@@ -1,4 +1,3 @@
-import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import LoginForm from './components/LoginForm'
 import RegisterForm from './components/RegisterForm'
@@ -9,7 +8,7 @@ import './App.css'
 function App() {
   const isAuthenticated = !!localStorage.getItem('token')
 
-  const handleLoginSuccess = (user: any) => {
+  const handleLoginSuccess = () => {
     // Login success is handled in LoginForm component
     // This callback can be used for additional logic if needed
   }
