@@ -8,8 +8,31 @@ const API = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-
 });
+
+// Add JWT token interceptor to include authorization header in all requests
+API.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// Handle authentication errors globally
+API.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
 
 // ------------------------------------------------------------------------
 // HomeCanvas: Authentication API calls 
@@ -21,5 +44,17 @@ export const authAPI = {
     checkHealth: () => API.get('/auth/health'), // Check the health of the authentication service
 };
 
+// ------------------------------------------------------------------------
+// HomeCanvas: Device Management API calls
+export const deviceAPI = {
+    // Define methods for device-related API calls
+    getDevices: () => API.get('/devices'), // Get all devices for the authenticated user
+    getDevice: (id: number) => API.get(`/devices/${id}`), // Get device details
+    getTelemetry: (id: number, page: number = 0, size: number = 10) => 
+        API.get(`/devices/${id}/telemetry`, { params: { page, size } }), // Get device telemetry history
+    getActions: (id: number, page: number = 0, size: number = 10) => 
+        API.get(`/devices/${id}/actions`, { params: { page, size } }), // Get device action logs
+};
 
-// ------------------------------------------------------------------------------
+// Export the API instance for direct access if needed
+export default API;

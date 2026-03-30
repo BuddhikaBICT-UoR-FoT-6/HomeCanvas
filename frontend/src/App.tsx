@@ -1,66 +1,38 @@
-import { useState } from 'react'
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import LoginForm from './components/LoginForm'
 import RegisterForm from './components/RegisterForm'
-import './index.css'
+import DeviceDashboard from './pages/DeviceDashboard'
+import DeviceDetail from './pages/DeviceDetail'
+import './App.css'
 
 function App() {
-  const [user, setUser] = useState<any>(null)
-  const [currentPage, setCurrentPage] = useState<'login' | 'register'>('login')
+  const isAuthenticated = !!localStorage.getItem('token')
 
-  const handleLoginSuccess = (userData: any) => {
-    setUser(userData)
+  const handleLoginSuccess = (user: any) => {
+    // Login success is handled in LoginForm component
+    // This callback can be used for additional logic if needed
   }
 
-  const handleSwitchToRegister = () => {
-    setCurrentPage('register')
-  }
-
-  const handleSwitchToLogin = () => {
-    setCurrentPage('login')
-  }
-
-  const handleRegisterSuccess = () => {
-    setCurrentPage('login')
-  }
-
-  if (user) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8">
-        <h1 className="text-4xl font-bold text-center mb-8">Welcome, {user.username}!</h1>
-        <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
-          <p><strong>Username:</strong> {user.username}</p>
-          <p><strong>Role:</strong> {user.role}</p>
-          <p><strong>User ID:</strong> {user.id}</p>
-          <p><strong>Joined:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
-          <button 
-            onClick={() => {
-              localStorage.clear()
-              setUser(null)
-            }}
-            className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // Set up routing for the application using react-router-dom, with protected routes for the 
+  // device dashboard and device detail pages that require authentication  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
-      {currentPage === 'login' ? (
-        <LoginForm 
-          onLoginSuccess={handleLoginSuccess}
-          onSwitchToRegister={handleSwitchToRegister}
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginForm onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/register" element={<RegisterForm />} />
+        <Route 
+          path="/devices" 
+          element={isAuthenticated ? <DeviceDashboard /> : <Navigate to="/login" />} 
         />
-      ) : (
-        <RegisterForm 
-          onRegisterSuccess={handleRegisterSuccess}
-          onSwitchToLogin={handleSwitchToLogin}
+        <Route 
+          path="/devices/:id" 
+          element={isAuthenticated ? <DeviceDetail /> : <Navigate to="/login" />} 
         />
-      )}
-    </div>
-  );
+        <Route path="/" element={<Navigate to="/devices" />} />
+      </Routes>
+    </Router>
+  )
 }
 
-
-export default App;
+export default App
