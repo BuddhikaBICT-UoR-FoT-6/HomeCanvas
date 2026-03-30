@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deviceAPI } from '../services/api';
 
@@ -77,40 +77,4 @@ export default function DeviceDashboard(){
         </div>
     );
 }
-
-    // Each device is displayed in a card format, and clicking on a device navigates to its detail page using 
-    // the navigate function.
-    return(
-        <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold mb-4">My Smart Home Devices</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                // Map through the devices array and render a card for each device. Each card displays the 
-                // device's name, MAC address, online status, and last seen time. The card is clickable and navigates to 
-                // the device's detail page when clicked. The online status is styled differently based on whether the 
-                // device is online or offline. If there are no devices, a message is displayed to the user. 
-                {devices.map(device => (
-                    <div 
-                        key={device.id}
-                        className="border rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                        onClick={() => navigate(`/devices/${device.id}`)}
-                    >
-                        <h3 className="font-bold text-lg">{device.name}</h3>
-                        <p className="text-sm text-gray-600">MAC: {device.macAddress}</p>
-                        <p className={`text-sm font-semibold ${device.onlineStatus === 'ONLINE' ? 'text-green-600' : 'text-red-600'}`}>
-                        Status: {device.onlineStatus}
-                        </p>
-                        <p className="text-xs text-gray-500">Last seen: {new Date(device.lastSeen).toLocaleString()}</p>
-                    </div>
-                ))}
-            </div>
-            {devices.length === 0 && (
-                <p className="text-center text-gray-500">No devices found. Register a device to get started.</p>
-            )}
-
-        </div>
-    );
-}
-
-
 
