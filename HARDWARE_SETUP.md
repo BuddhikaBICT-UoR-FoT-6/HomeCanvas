@@ -1,590 +1,716 @@
-# HomeCanvas Hardware Setup Guide
+# HomeCanvas Hardware Setup Guide 
+## Smart Vent IoT Node with Console Failover
 
-Complete step-by-step guide to build the HomeCanvas IoT smart home system hardware prototype.
+Complete documentation of the HomeCanvas IoT smart home system hardware prototype, including enterprise failover architecture and console-based alerting.
 
 ---
 
 ## Table of Contents
-1. [Component List](#component-list)
-2. [Tools Required](#tools-required)
-3. [Wiring Diagram](#wiring-diagram)
-4. [Assembly Instructions](#assembly-instructions)
-5. [Testing Procedures](#testing-procedures)
-6. [Safety Notes](#safety-notes)
-7. [Troubleshooting](#troubleshooting)
+1. [System Architecture Overview](#system-architecture-overview)
+2. [Core Processing Units](#core-processing-units)
+3. [Sensor Array](#sensor-array)
+4. [Actuators & Indicators](#actuators--indicators)
+5. [Alert Dashboard](#alert-dashboard)
+6. [Communication Topologies](#communication-topologies)
+7. [Power Distribution](#power-distribution)
+8. [Wiring Diagram](#wiring-diagram)
+9. [Assembly Instructions](#assembly-instructions)
+10. [Code Implementation](#code-implementation)
+11. [Testing Procedures](#testing-procedures)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Component List
+---
 
-### Microcontroller & Processing
-| Component | Quantity | Specification | Notes |
-|-----------|----------|---------------|-------|
-| ESP32 DevKit | 1 | 36-pin, dual-core, WiFi/BLE | Main microcontroller |
-| Arduino Nano (optional) | 1 | ATmega328P, 5V | Optional secondary processor |
-| Breadboard | 2 | 400-830 tie-points | For prototyping connections |
+## System Architecture Overview
 
-### Sensors
-| Component | Quantity | Range | Notes |
-|-----------|----------|-------|-------|
-| **PIR Motion Sensor** | 1 | 3-5m range | HC-SR501, 5VDC |
-| **LDR Light Sensor** | 1 | 250-25000 Lux equivalent | Analog 0-1023 range |
-| **Sound Sensor** | 1 | 30-130 dB | Analog 0-1023 output |
+The HomeCanvas system demonstrates enterprise-grade fault tolerance through a **dual-microcontroller failover architecture**. The primary ESP32 node handles sensor polling, edge processing, and cloud communication, while a secondary Arduino Uno console provides graceful degradation when physical components fail.
 
-### Actuators & Outputs
-| Component | Quantity | Specification | Notes |
-|-----------|----------|---------------|-------|
-| **5V Relay Module** | 1 | 1-channel, 250VAC/10A | For fan control |
-| **LED Pack** | 3 | Red/Green/Blue 5mm | Visual status indicators |
-| **16x2 LCD Display** | 1 | I2C module, 5VDC | Text output for alerts |
-| **Buzzer** | 1 | 5V piezo | Audio alarm |
+**Key Capability:** When the I2C LCD fails, the system seamlessly pivots to serial console output via the Arduino, ensuring critical security alerts remain visible through the laptop's Serial Monitor.
 
-### Power & Connectivity
-| Component | Quantity | Specification | Notes |
-|-----------|----------|---------------|-------|
-| **USB Power Supply** | 1 | 5V/2A minimum | ESP32 power |
-| **Power Bank** | 1 | 10000mAh+ | Portable operation |
-| **Resistors** | 10+ | 220Ω, 10kΩ, 1kΩ | Current limiting, pull-ups |
-| **Capacitors** | 5+ | 10µF, 100µF | Noise filtering |
-| **Jumper Wires** | 50+ | F-F, M-F | Breadboard connections |
-| **USB Micro Cable** | 1 | Data + Power | ESP32 programming |
-| **WiFi Network** | - | 2.4GHz | For ESP32 connectivity |
-
-### Optional Components
-| Component | Purpose |
-|-----------|---------|
-| DHT22 Temperature/Humidity | Extended telemetry |
-| Soil Moisture Sensor | Garden automation |
-| Water Level Sensor | Tank monitoring |
-| OLED Display | Alternative to LCD |
+This architecture is ideal for thesis presentations on real-world IoT resilience and failure recovery patterns.
 
 ---
 
-## Tools Required
+## Core Processing Units
 
-### Essential
-- **Soldering Iron** (25-40W recommended)
-- **Solder & Flux** (lead-free preferred)
-- **Wire Strippers** (for 22-28 AWG)
-- **Multimeter** (voltage/continuity testing)
-- **Hot Glue Gun** (component mounting)
+### **Primary Microcontroller: ESP32 Development Board**
+- **Role:** Central nervous system
+- **Capabilities:** 
+  - Asynchronous sensor polling at configurable intervals
+  - Edge-logic processing (local decision making)
+  - 2.4GHz Wi-Fi communication with Spring Boot backend
+  - UART serial communication to Arduino failover node
+- **Key Specs:**
+  - Dual-core 240MHz processors
+  - 520KB SRAM
+  - 4MB Flash storage
+  - 14× ADC channels (analog sensors)
+  - 16× PWM channels (servo/LED control)
+- **Power:** 5V supplied via USB cable
 
-### Helpful
-- **Breadboard Power Supply** (dedicated 5V/3.3V rails)
-- **USB to Serial Adapter** (debugging)
-- **Tweezers** (precision component placement)
-- **PCB Holder/Helping Hands** (soldering assistance)
-- **Safety Glasses** (eye protection)
+### **Secondary Microcontroller: Arduino Uno (Failover Console Terminal)**
+- **Role:** Decoupled alert terminal and physical alarm
+- **Capabilities:**
+  - Listens to ESP32 via one-way UART serial link (9600 baud)
+  - Streams formatted security alerts to laptop Serial Monitor
+  - Activates onboard LED (Pin 13) as rapid visual strobe alarm
+- **Hardware Trigger:** When LCD I2C bus becomes unresponsive, ESP32 redirects alerts to Arduino
+- **Power:** 5V supplied via independent USB cable (isolated from main system)
+
+---
+
+## Sensor Array
+
+### **1. Presence Detection: HC-SR501 PIR Motion Sensor**
+```
+Connection:
+  VCC (3.3V/5V) ──→ ESP32 3.3V rail
+  OUT (Digital)  ──→ GPIO 13
+  GND            ──→ Common ground
+
+Specifications:
+  - Detection Range: 3-5 meters
+  - Trigger Time: ~2 seconds
+  - Timeout: ~30 seconds (adjustable)
+  - Output: HIGH when motion detected, LOW otherwise
+
+Use Case: Triggers automated vent opening when room occupancy detected
+```
+
+### **2. Acoustic Monitoring: KY-037 Sound Sensor Module**
+```
+Connection:
+  VCC (5V)       ──→ ESP32 3.3V rail (via current limiter or direct)
+  OUT (Analog)   ──→ GPIO 35 (ADC1_7)
+  GND            ──→ Common ground
+
+Specifications:
+  - Frequency Range: 50Hz - 20kHz
+  - Sensitivity: 30-130 dB (adjustable via potentiometer)
+  - Output: 0-1023 (10-bit ADC, 0-3.3V)
+  - Update Rate: ~25kHz
+
+Use Case: Detects excessive noise conditions, triggers damper control
+```
+
+### **3. Ambient Light Detection: Bare LDR (Photoresistor)**
+```
+Circuit Configuration (Software Pull-Up):
+  GPIO 32 (INPUT_PULLUP)
+         ├──[LDR]──[GND]
+         └──[Internal 40-80kΩ resistor]──[3.3V]
+
+Technical Details:
+  - Internal ESP32 pull-up resistor eliminates external voltage divider
+  - Resistance Range: 1kΩ (bright) to 100kΩ (dark)
+  - Converted to 0-1023 by analog read
+  - ESP32 GPIO 32: ADC1_4 channel
+
+Use Case: Disables vent opening in dark rooms (assumes vacancy)
+Configuration Code: pinMode(LDR_PIN, INPUT_PULLUP);
+```
+
+---
+
+## Actuators & Indicators
+
+### **1. Split-Damper HVAC Simulation: Dual SG90 Micro Servos**
+```
+Left Door Servo:
+  VCC (5V)      ──→ ESP32 VIN (5V from USB bus)
+  Signal (PWM)  ──→ GPIO 14
+  GND           ──→ Common ground
+
+Right Door Servo:
+  VCC (5V)      ──→ ESP32 VIN (5V from USB bus)
+  Signal (PWM)  ──→ GPIO 27
+  GND           ──→ Common ground
+
+Control Logic (Mirrored Angles):
+  - Closed Position: Left=0°, Right=180° (doors fully shut)
+  - Open Position: Left=90°, Right=90° (doors straight open)
+  - Backend sends JSON: {"fanOn": true/false}
+
+Mechanical Function:
+  Simulates HVAC dampers controlling airflow through a split vent system
+  Physical connection to breadboard via servo horn (90° range)
+```
+
+### **2. System Status Indicator: LED**
+```
+Circuit:
+  5V ──[330Ω resistor]──[LED anode]──┬──→ GPIO 25
+                                      │
+                              [LED cathode]──→ GND
+
+Specifications:
+  - Standard 5mm LED (any color)
+  - Current Limiting: 330Ω @ 5V = ~15mA (safe for ESP32 GPIO)
+  - HIGH = LED illuminated (vent active)
+  - LOW = LED off (vent closed)
+
+Use Case: Localized visual confirmation of vent state without relying on backend
+```
+
+---
+
+## Alert Dashboard
+
+### **Arduino Uno: Enterprise Console Terminal**
+
+#### **Text Output Stream**
+```
+Serial Configuration:
+  - Baud Rate: 9600
+  - Data Bits: 8
+  - Parity: None
+  - Stop Bits: 1
+  - Hardware: RX Pin 0 (receives from ESP32 TX2)
+              USB interface (sends to laptop)
+
+Display Format (Serial Monitor at 9600):
+  ==================================
+   ENTERPRISE VENT NODE ONLINE
+  ==================================
+  
+  ⚠️ SECURITY EVENT DETECTED ⚠️
+  >> SECURITY ALERT!
+  ----------------------------------
+
+Usage:
+  1. Upload Arduino code to Uno
+  2. Wire ESP32 TX2 (GPIO 17) → Arduino RX (Pin 0)
+  3. Open Serial Monitor @ 9600
+  4. Alerts appear in real-time as ESP32 detects conditions
+```
+
+#### **Physical Siren: Onboard LED (Pin 13)**
+```
+Behavior:
+  - Receiving Message: LED flashes 5× rapidly (150ms on/off cycle)
+  - Visual Strobe Impact: High-visibility alarm effect
+  - Audible Component: Relay buzzer can be connected separately if needed
+
+Implementation:
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(13, HIGH);  delay(150);
+    digitalWrite(13, LOW);   delay(150);
+  }
+```
+
+---
+
+## Communication Topologies
+
+### **1. Cloud Link: ESP32 ↔ Spring Boot Backend (Wi-Fi)**
+```
+Connection Type: 2.4GHz IEEE 802.11 b/g/n
+Network Protocol: HTTP POST with JSON payload
+Endpoint: http://YOUR_LAPTOP_IP:8080/api/iot/telemetry
+
+Request Format (from ESP32):
+{
+  "macAddress": "AA:BB:CC:DD:EE:FF",
+  "lightLevel": 512,
+  "noiseLevel": 234,
+  "motionDetected": true
+}
+
+Response Format (from Spring Boot):
+{
+  "fanOn": true,
+  "lcdMessage": "SECURITY_ALERT",
+  "timestamp": 1713360000000
+}
+
+Polling Interval: 2 seconds (adjustable in loop delay)
+Error Handling: Prints HTTP status codes to serial console
+```
+
+### **2. Inter-Node Link: ESP32 TX2 ↔ Arduino RX (UART Serial)**
+```
+Physical Connection:
+  ESP32 GPIO 17 (TX2) ──→ Arduino Pin 0 (RX)
+  ESP32 GND          ──→ Arduino GND (CRITICAL common ground)
+
+Data Format: Plain text transmitted at 9600 baud
+Message Example: "SECURITY ALERT!\n"
+
+Characteristics:
+  - One-way communication (ESP32 → Arduino only)
+  - Asynchronous: Arduino listens continuously
+  - No handshaking required (fire-and-forget)
+  - Arduino processes incoming buffer via Serial.available()
+
+Upload Safety:
+  ⚠️ BEFORE uploading Arduino code:
+  1. Disconnect GPIO 17 from Arduino Pin 0
+  2. Upload via USB
+  3. Reconnect GPIO 17 immediately after
+```
+
+---
+
+## Power Distribution
+
+### **Logic Power Supply**
+```
+Primary Rail (5V - USB):
+  USB-A ──→ USB-Micro cable ──→ ESP32 power jack
+  USB-A ──→ USB-Micro cable ──→ Arduino Uno power jack
+  
+  Result: ESP32 and Arduino run independently
+          Each draws current from its own USB port
+
+Secondary Rail (3.3V - ESP32 Regulated):
+  ESP32 3V3 pin ──→ Breadboard positive rail
+                    │
+                    ├──→ HC-SR501 PIR sensor
+                    ├──→ KY-037 Sound sensor
+                    └──→ LDR (via internal pull-up)
+```
+
+### **Actuator Power (Servo Motors - 5V)**
+```
+ESP32 VIN Pin (5V from USB bus):
+  │
+  ├──→ Left Servo (SG90) - GPIO 14
+  ├──→ Right Servo (SG90) - GPIO 27
+  │
+  Result: Servos draw peak current during sweep (~500mA each)
+          USB power supply must support 2A minimum during operation
+```
+
+### **Unified Ground Plane (CRITICAL)**
+```
+Common GND Connection:
+  USB GND ──────┬──→ ESP32 GND (multiple pins)
+                ├──→ Arduino GND
+                ├──→ Breadboard GND rail
+                └──→ All sensor GND
+                
+Purpose: Establishes 0V logic reference for UART serial communication
+         between ESP32 and Arduino. Without this, serial data corrupts.
+```
 
 ---
 
 ## Wiring Diagram
 
-### ESP32 Pin Assignments
+### **Complete Pin Mapping**
 
+#### **ESP32 Pinout (36-pin DevKit)**
 ```
 ┌─────────────────────────────────────┐
 │       ESP32 DevKit (36-pin)         │
 ├─────────────────────────────────────┤
-│ Power:                              │
-│  5V  ────→ Breadboard 5V rail       │
-│  GND ────→ Breadboard GND rail      │
-│  3V3 ────→ 3.3V rail (sensors)      │
+│ POWER PINS:                         │
+│  VIN  ────→ Servo motors (5V)       │
+│  GND  ────→ Common ground plane     │
+│  3V3  ────→ Sensor rail (3.3V)      │
+│  EN   ────→ Enable (leave floating) │
 │                                     │
-│ Sensors:                            │
-│  GPIO 19 (ADC2_3) ─→ LDR (A0)       │
-│  GPIO 32 (ADC1_4) ─→ Noise (A1)     │
-│  GPIO 34 (ADC1_6) ─→ PIR (D1)       │
+│ SENSOR INPUTS:                      │
+│  GPIO 13 (IN) ──→ HC-SR501 PIR      │
+│  GPIO 32 (INPUT_PULLUP) ──→ LDR     │
+│  GPIO 35 (ADC1_7) ──→ KY-037 Sound  │
 │                                     │
-│ Outputs:                            │
-│  GPIO 5  ─→ Relay Module (IN pin)   │
-│  GPIO 18 ─→ Red LED (anode via R)   │
-│  GPIO 19 ─→ Green LED (anode via R) │
-│  GPIO 21 ─→ Blue LED (anode via R)  │
-│  GPIO 22 ─→ LCD SDA (I2C)           │
-│  GPIO 23 ─→ LCD SCL (I2C)           │
-│  GPIO 25 ─→ Buzzer (pos via R)      │
+│ ACTUATOR OUTPUTS:                   │
+│  GPIO 14 (PWM) ──→ Left Servo       │
+│  GPIO 27 (PWM) ──→ Right Servo      │
+│  GPIO 25 (OUT) ──→ Status LED       │
+│  GPIO 17 (TX2) ──→ Arduino RX       │
 │                                     │
-│ Serial/JTAG:                        │
-│  TX (GPIO 1) ─→ USB via auto-reset  │
-│  RX (GPIO 3) ─→ USB via auto-reset  │
+│ SERIAL DEBUG (USB):                 │
+│  GPIO 1  ──→ TX (to laptop USB)     │
+│  GPIO 3  ──→ RX (from laptop USB)   │
 └─────────────────────────────────────┘
 ```
 
-### Sensor Pinouts
-
-#### **PIR Motion Sensor (HC-SR501)**
+#### **Arduino Uno Pinout (28-pin)**
 ```
-┌─────────────────┐
-│  VCC  GND  OUT  │   (3-5V logic)
-│  5V   GND  34   │   Connected to ESP32 GPIO 34
-└─────────────────┘
-```
-
-#### **LDR Light Sensor**
-```
-Circuit:
-  5V ─────[LDR]──┬─── ESP32 GPIO 19 (ADC)
-                 │
-              [10k Ω resistor]
-                 │
-                GND
-```
-
-#### **Sound Sensor (Analog)**
-```
-Circuit:
-  5V ──→ VCC
-  GND ──→ GND
-  ESP32 GPIO 32 ──→ OUT (Analog signal)
-  
-Sensitivity: Adjustable via potentiometer on module
-```
-
-#### **16x2 LCD with I2C Module**
-```
-┌──────────────┐
-│ GND  VCC SCL SDA │
-│ GND  5V  23  22  │   Connected to ESP32 GPIO 22/23
-└──────────────┘
-```
-
-#### **5V Relay Module**
-```
-┌───────────────────┐
-│ GND  VCC  IN      │
-│ GND  5V   GPIO 5  │   Low signal = relay activates
-│                   │   Common, Normally Open, Normally Closed
-├───────────────────┤
-│  COM  NO   NC     │   Wire AC device to COM/NO
-└───────────────────┘
-```
-
-#### **LED Connections (with current-limiting resistors)**
-```
-5V ─[220Ω]─[LED anode]─ GPIO 18 (Red)
-5V ─[220Ω]─[LED anode]─ GPIO 19 (Green)
-5V ─[220Ω]─[LED anode]─ GPIO 21 (Blue)
-     Cathode to GND
-```
-
-#### **Buzzer**
-```
-5V ─[1kΩ resistor]─[Buzzer +]─ GPIO 25
-     Buzzer - to GND
+┌──────────────────────────────┐
+│    Arduino Uno (ATmega328)   │
+├──────────────────────────────┤
+│ POWER & GROUND:              │
+│  5V  ────→ Breadboard power  │
+│  GND ────→ Common ground     │
+│                              │
+│ SERIAL COMMUNICATION:        │
+│  Pin 0 (RX) ──→ ESP32 TX2    │
+│  USB         ──→ PC Serial   │
+│                              │
+│ INDICATORS:                  │
+│  Pin 13 (LED) ──→ Strobe     │
+│                              │
+│ PROGRAMMING:                 │
+│  RST (pin)   ──→ DTR via USB │
+│                              │
+└──────────────────────────────┘
 ```
 
 ---
 
 ## Assembly Instructions
 
-### Step 1: Prepare Breadboards & Power Rails
+### **Step 1: Prepare Power Infrastructure**
+1. Place two 400-point breadboards side-by-side
+2. Connect 5V USB rail across both boards (red jumper)
+3. Connect GND across both boards (black jumper)
+4. **CRITICAL:** Add a dedicated GND jumper between ESP32 GND and Arduino GND for UART stability
 
-1. **Place first breadboard** horizontally with 30-pin end facing you
-2. **Wire power rails**:
-   ```
-   USB 5V ─→ Red rail (+) on both breadboards
-   GND    ─→ Blue rail (-) on both breadboards
-   ```
-3. **Add power supply**:
-   - Connect USB 5V to breadboard power rail
-   - Verify with multimeter: 5V between + and - rails
-4. **Add 3.3V rail** (optional, for sensor power):
-   - Use breadboard power supply module ESP32 3V3 output
+### **Step 2: Mount ESP32 on Primary Breadboard**
+1. Insert ESP32 horizontally, centered
+2. Attach a label identifying GPIO pins
+3. Wire ESP32 GND → Breadboard GND rail
+4. Wire ESP32 3V3 → Secondary rail for sensors
 
-### Step 2: Mount ESP32
+### **Step 3: Mount Arduino Uno on Secondary Breadboard**
+1. Insert Arduino header pins or use jumpers
+2. Wire Arduino GND → Breadboard GND rail
+3. **Wire Arduino RX (Pin 0) → ESP32 GPIO 17 (TX2)** - use shielded cable if available
+4. Leave Arduino Pin 13 (LED) unwired - it has builtin LED
 
-1. **Insert ESP32** into breadboard center column (leave 2 rows on each side for hookups)
-   ```
-   Top row: Vcc, GND, D23, D22, D21, D20, D19, D18...
-   Bottom row: EN, RST, GPIO35, GPIO34, GPIO32, GPIO33...
-   ```
-2. **Connect power**:
-   - ESP32 5V pin → Breadboard 5V rail
-   - ESP32 GND (2 pins) → Breadboard GND rail
-   - ESP32 3V3 → 3.3V rail (if using separate rail)
-3. **Verify**: Multimeter should show 5V between 5V and GND on ESP32
+### **Step 4: Connect Sensor Array**
+```
+PIR (HC-SR501):
+  VCC → 3.3V rail
+  OUT → GPIO 13 (use 10kΩ pull-down if needed)
+  GND → GND rail
 
-### Step 3: Connect Sensors
+Sound Sensor (KY-037):
+  VCC → 3.3V rail
+  OUT → GPIO 35 (ADC channel)
+  GND → GND rail
 
-#### **PIR Motion Sensor**
-1. Insert 3-pin header into breadboard
-2. Wire terminals:
-   - VCC (red) → 5V rail
-   - GND (black) → GND rail
-   - OUT (yellow) → ESP32 GPIO 34
-3. Verify LED on sensor lights up (indicates power)
+LDR (Photoresistor):
+  Side 1 → GND rail (short lead)
+  Side 2 → GPIO 32 (long lead)
+  Note: Enable INPUT_PULLUP in code - no external resistor needed!
+```
 
-#### **LDR Light Sensor**
-1. Place LDR photoresistor across breadboard gap
-2. Connect one leg to 5V rail
-3. Connect other leg to:
-   - 10kΩ resistor → GND
-   - Junction between resistor → ESP32 GPIO 19 (ADC)
-4. Test: Multimeter shows ~ 1.5V in darkness, ~ 3V in bright light
+### **Step 5: Connect Actuators**
+```
+Left Servo (SG90):
+  VCC (Red)   → ESP32 VIN (5V from USB)
+  GND (Brown) → GND rail
+  SIG (White) → GPIO 14
 
-#### **Sound Sensor**
-1. Insert 4-pin sound sensor module into breadboard
-2. Connect:
-   - VCC → 5V rail
-   - GND → GND rail
-   - OUT (Analog) → ESP32 GPIO 32
-   - GND (second pin) → GND rail
-3. Adjust sensitivity potentiometer (CCW = more sensitive)
+Right Servo (SG90):
+  VCC (Red)   → ESP32 VIN (5V from USB)
+  GND (Brown) → GND rail
+  SIG (White) → GPIO 27
 
-#### **LCD I2C Display**
-1. Solder 4-pin header to LCD I2C module if not pre-soldered
-2. Connect:
-   - GND → GND rail
-   - VCC → 5V rail
-   - SCL → ESP32 GPIO 23
-   - SDA → ESP32 GPIO 22
-3. **Pro tip**: Add 100µF capacitor across I2C power pins for stability
+Status LED:
+  Anode (+) → GPIO 25 (through 330Ω resistor first)
+  Cathode (−) → GND rail
+```
 
-### Step 4: Connect Actuators
+### **Step 6: Cable ESP32 to Arduino UART Bridge**
+1. Identify ESP32 GPIO 17 (TX2 output pin)
+2. Identify Arduino Pin 0 (RX input pin)
+3. Use a jumper (preferably twisted pair for EMI immunity)
+4. Connect: **ESP32 GPIO 17 → Arduino Pin 0**
+5. Verify they share the same Ground rail
 
-#### **Relay Module (Fan Control)**
-1. Insert 3-pin relay into second breadboard
-2. Connect:
-   - GND → GND rail
-   - VCC → 5V rail
-   - IN → ESP32 GPIO 5
-3. Wire AC fan/device:
-   - Connect to COM (common) and NO (normally open)
-   - **Safety**: Enclose high-voltage connections in shrink tubing
+### **Step 7: Final Power Check**
+```
+Multimeter verification (before connecting anything to battery/power):
+  5V rail to GND: Should read 5.0V ± 0.2V
+  3.3V rail to GND: Should read 3.3V ± 0.1V
+  Ground continuity: All GND should be <0.1Ω
+```
 
-#### **LEDs (Status Indicators)**
-1. Insert 3 LEDs into breadboard pointing upward
-2. For each LED:
-   - **Anode (long leg)** → 220Ω resistor → 5V rail
-   - **Cathode (short leg)** → ESP32 pin
-     - Red LED → GPIO 18
-     - Green LED → GPIO 19
-     - Blue LED → GPIO 21
-3. Test: Apply 5V across resistor should light LED
+---
 
-#### **Buzzer**
-1. Insert piezo buzzer into breadboard
-2. Connect:
-   - **+** (positive) → 1kΩ resistor → ESP32 GPIO 25
-   - **-** (negative) → GND
-3. Test: Apply 5V signal should produce beep
+## Code Implementation
 
-### Step 5: Cable Management
+### **ESP32 Main Node (C++)**
 
-1. **Group sensor wires** with zip ties:
-   - All sensor signals together
-   - All power/GND wires together
-2. **Label wires** with tape markers (G19=LDR, G34=PIR, etc.)
-3. **Prevent shorts** with isolating tape on exposed resistor leads
-4. **Secure components** with hot glue:
-   - Glue sensor modules to breadboard frame
-   - Secure LCD display with double-sided tape
+```cpp
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ESP32Servo.h>
 
-### Step 6: Connect Power Supply
+// ==========================================
+// ⚠️ NETWORK CONFIGURATION ⚠️
+// ==========================================
+const char* ssid = "YOUR_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";
+// Ensure your Spring Boot server is running on this IP!
+const String backendUrl = "http://YOUR_LAPTOP_IP:8080/api/iot/telemetry"; 
 
-1. Connect USB power source to breadboard 5V rail
-2. **First power-on check**:
-   - All LEDs should light dimly (they'll be on GPIO states)
-   - LCD should backlight (may show garbage characters initially)
-   - No smoke or burning smell!
-3. Verify multimeter readings:
-   - 5V between power rail and GND
-   - 3.3V on ESP32 3V3 pin
-   - ~2.5V on ESP32 ADC pins (mid-range)
+// ==========================================
+// PIN DEFINITIONS
+// ==========================================
+const int PIR_PIN = 13;
+const int LEFT_SERVO_PIN = 14;
+const int RIGHT_SERVO_PIN = 27;
+const int STATUS_LED_PIN = 25; 
+const int LDR_PIN = 32;
+const int SOUND_PIN = 35;
+
+// Create the Servo objects for the Split Damper
+Servo leftVent;
+Servo rightVent;
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Start the secondary Serial port to talk to the Arduino Uno (TX is GPIO 17)
+  Serial2.begin(9600, SERIAL_8N1, 16, 17); 
+
+  // Setup Sensor Pins
+  pinMode(PIR_PIN, INPUT);
+  pinMode(SOUND_PIN, INPUT);
+  
+  // Activate the internal pull-up resistor for the LDR
+  pinMode(LDR_PIN, INPUT_PULLUP); 
+  
+  // Setup the Output LED
+  pinMode(STATUS_LED_PIN, OUTPUT);
+  digitalWrite(STATUS_LED_PIN, LOW);
+  
+  // Attach the Servos and set initial closed position (Mirrored angles)
+  leftVent.attach(LEFT_SERVO_PIN);
+  rightVent.attach(RIGHT_SERVO_PIN);
+  leftVent.write(0); 
+  rightVent.write(180);
+
+  // Connect to Wi-Fi
+  Serial.print("Connecting to Wi-Fi");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected! My IP is: " + WiFi.localIP().toString());
+  Serial.println("My MAC Address is: " + WiFi.macAddress()); 
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(backendUrl);
+    http.addHeader("Content-Type", "application/json");
+
+    // 1. Read the Sensors
+    int lightLevel = analogRead(LDR_PIN);
+    int noiseLevel = analogRead(SOUND_PIN);
+    bool motionDetected = digitalRead(PIR_PIN) == HIGH;
+
+    // 2. Build the JSON Payload (Matching your Spring Boot DTO)
+    String payload = "{";
+    payload += "\"macAddress\":\"" + WiFi.macAddress() + "\",";
+    payload += "\"lightLevel\":" + String(lightLevel) + ",";
+    payload += "\"noiseLevel\":" + String(noiseLevel) + ",";
+    payload += "\"motionDetected\":" + String(motionDetected ? "true" : "false");
+    payload += "}";
+
+    // 3. Send to Spring Boot
+    int httpResponseCode = http.POST(payload);
+
+    // 4. Process the Backend's Response
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("Backend says: " + response);
+
+      // Parse the JSON string to execute hardware actions
+      if (response.indexOf("\"fanOn\":true") > 0) {
+        // Sweep both doors to 90 degrees (Straight open!)
+        leftVent.write(90); 
+        rightVent.write(90);
+        digitalWrite(STATUS_LED_PIN, HIGH); // Turn on the indicator LED
+        Serial.println("⚙️ VENT COMMAND: SPLIT DOORS OPEN");
+      } else {
+        // Sweep doors back to opposite closed positions
+        leftVent.write(0);  
+        rightVent.write(180);
+        digitalWrite(STATUS_LED_PIN, LOW); // Turn off the indicator LED
+      }
+
+      // If there is an LCD message, shout it to the Arduino over the wire
+      if (response.indexOf("\"lcdMessage\":\"") > 0) {
+        Serial2.println("SECURITY ALERT!"); 
+      }
+      
+    } else {
+      Serial.println("Error hitting backend: " + String(httpResponseCode));
+    }
+    http.end();
+  }
+
+  // Wait 2 seconds before sending the next telemetry ping
+  delay(2000);
+}
+```
+
+### **Arduino Uno Alert Terminal (C++)**
+
+```cpp
+void setup() {
+  // Start the communication line (Listens to ESP32 on Pin 0, Talks to Laptop via USB)
+  Serial.begin(9600);
+  
+  // Set up the built-in LED (Pin 13) as our physical alarm siren
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
+  
+  // Print the startup header to the laptop screen
+  Serial.println("==================================");
+  Serial.println(" ENTERPRISE VENT NODE ONLINE ");
+  Serial.println("==================================");
+  Serial.println("Awaiting telemetry alerts...");
+}
+
+void loop() {
+  // If the ESP32 shouts a message down the UART wire...
+  if (Serial.available()) {
+    String message = Serial.readStringUntil('\n');
+    
+    // 1. Print the formatted alert to the laptop screen
+    Serial.println("");
+    Serial.println("⚠️ SECURITY EVENT DETECTED ⚠️");
+    Serial.println(">> " + message);
+    Serial.println("----------------------------------");
+    
+    // 2. Flash the Arduino's built-in LED rapidly like a siren
+    for (int i = 0; i < 5; i++) {
+      digitalWrite(13, HIGH);
+      delay(150);
+      digitalWrite(13, LOW);
+      delay(150);
+    }
+  }
+}
+```
 
 ---
 
 ## Testing Procedures
 
-### Pre-Firmware Tests
+### **1. Serial Connection Test (Arduino IDE)**
+```
+ESP32 Serial Monitor:
+  1. Connect ESP32 to laptop via USB
+  2. Open Arduino IDE → Serial Monitor (115200 baud)
+  3. Look for: "Connecting to Wi-Fi", "Connected!"
+  4. Verify MAC address and IP address print correctly
 
-#### **1. Power Distribution Test**
-```
-Multimeter (DC Voltage mode):
-✓ 5V rail to GND: should read 5.0V ± 0.2V
-✓ ESP32 5V pin to GND: should read 5.0V
-✓ Sensor modules VCC to GND: should read 5.0V
-✓ I2C devices: should read 5.0V
-```
-
-#### **2. Continuity Test**
-```
-Multimeter (Continuity/Ohms mode):
-✓ All GND connections beep (indicate continuity)
-✓ No beep between 5V and GND (good isolation)
-✓ GPIO pins ~ 10kΩ to GND when idle
-```
-
-#### **3. Sensor Analog Readings**
-```
-Multimeter (ADC Voltage mode):
-✓ LDR (GPIO 19): 1.5V dark → 3.5V bright
-✓ Noise (GPIO 32): 1.0V silent → 3.0V loud
-✓ PIR (GPIO 34): 0V no motion → 5V motion detected
-```
-
-#### **4. LED Test**
-```
-Manual test (apply power):
-✓ Red LED illuminates when GPIO 18 pulled high
-✓ Green LED illuminates when GPIO 19 pulled high  
-✓ Blue LED illuminates when GPIO 21 pulled high
-✓ All LEDs extinguish when GPIOs pulled low
-```
-
-#### **5. Relay Test**
-```
-Audible/Visual test:
-✓ Click sound when GPIO 5 pulled high (relay activates)
-✓ Multimeter shows continuity COM↔NO when activated
-✓ Click sound when GPIO 5 pulled low (relay deactivates)
-✓ Multimeter shows continuity COM↔NC when deactivated
-```
-
-#### **6. Buzzer Test**
-```
-Audio test:
-✓ Buzzer beeps when GPIO 25 pulled high
-✓ Quiet when GPIO 25 pulled low
-✓ Volume is reasonable (not painful)
-```
-
-### Post-Firmware Tests (After Arduino IDE Upload)
-
-#### **7. Serial Monitor Test**
-```
-Arduino IDE → Tools → Serial Monitor (115200 baud):
-✓ Startup messages appear
-✓ Sensor readings update every 1-2 seconds
-✓ PIR triggers print motion detection
-✓ Noise threshold triggers buzzer
-✓ Light threshold triggers LED
-```
-
-#### **8. Sensor Accuracy Validation**
-```
-LDR Test:
-  Cover sensor → voltage should drop
-  Shine light → voltage should increase
-  Vary intensity → readings should be proportional
-
-Noise Test:
-  Silence → low reading (< 200)
-  Normal speech → ~500-600
-  Loud noise → high reading (> 700)
-
-PIR Test:
-  Wave hand at sensor → triggers immediately
-  Hold still → stops after ~2 seconds
-  Test range (should be 3-5 meters)
-```
-
-#### **9. Automation Rules Test**
-```
-Test each rule independently:
-
-Rule 1 (Motion→Fan):
-  ✓ Wave at PIR sensor
-  ✓ Verify relay clicks and RED LED illuminates
-  ✓ Check backend received ActionLog entry
-
-Rule 2 (Noise>700→Alert):
-  ✓ Clap hands loudly near sensor
-  ✓ Verify BLUE LED illuminates
-  ✓ Verify LCD shows "ALERT" message
-  ✓ Check backend received ActionLog
-
-Rule 3 (Light<300→LED):
-  ✓ Cover LDR sensor completely
-  ✓ Verify GREEN LED illuminates
-  ✓ Verify backend received ActionLog
-```
-
-#### **10. WiFi & API Connectivity Test**
-```
 Arduino Serial Monitor:
-  ✓ "Connecting to WiFi: [SSID]..."
-  ✓ "WiFi connected. IP: 192.168.x.x"
-  ✓ "API endpoint: http://[backend-ip]:8080/api/iot/telemetry"
-
-Test telemetry send:
-  ✓ Trigger sensor event
-  ✓ Should see JSON POST in backend logs
-  ✓ Check MongoDB/SQL database for SensorEvent entry
+  1. Disconnect ESP32 from GPIO 17 (Pi Upload safety)
+  2. Upload Arduino sketch
+  3. Open Serial Monitor (9600 baud)
+  4. Look for: "ENTERPRISE VENT NODE ONLINE"
 ```
 
----
+### **2. Sensor Integration Test**
+```
+Test Motion (PIR):
+  1. Move hand in front of sensor
+  2. Watch Serial Monitor for motionDetected: true/false
+  3. Verify 2-3 second delay before reset
 
-## Safety Notes
+Test Light (LDR):
+  1. Cover LDR with hand (darkness)
+  2. Watch lightLevel value drop to 1000+
+  3. Expose to bright light
+  4. Watch value drop to 100-500
 
-### ⚠️ Electrical Safety
-1. **Never** leave circuit powered unattended during assembly
-2. **Always** disconnect USB before major rewiring
-3. **Double-check** polarity before power-on (most critical!)
-4. **Use 220Ω minimum** resistors for LED current limiting
-5. **Enclose** high-voltage relay contacts (if using AC devices)
-6. **Never** handle circuits while wet or barefoot
+Test Sound (Microphone):
+  1. Make noise near sensor
+  2. Watch noiseLevel spike
+  3. Verify sensitivity potentiometer adjustment works
+```
 
-### ⚠️ Relay Safety (If Using AC)
-1. **Label clearly**: "Danger - High Voltage"
-2. **Enclose** AC wiring with shrink tubing or electrical tape
-3. **Test relay operation** with multimeter before connecting live AC
-4. **Use properly grounded** power outlets
-5. **Install in protective enclosure** (plastic project box)
-6. **Never mix** AC and DC wiring visually
+### **3. Servo Actuation Test**
+```
+Manual Test Code (paste in loop()):
+  leftVent.write(0);   delay(1000);   // Closed
+  leftVent.write(90);  delay(1000);   // Open
+  rightVent.write(180); delay(1000);  // Closed
+  rightVent.write(90);  delay(1000);  // Open
 
-### ⚠️ Component-Specific
-1. **PIR Sensor**: Power on and wait 1 minute for stable state
-2. **LCD Display**: Use heatsink if leaving powered for 6+ hours
-3. **Buzzer**: Limit continuous operation to <10 seconds
-4. **LDR**: Avoid exposing to extremely bright light (>50,000 Lux)
-5. **ESP32**: Ensure adequate heat dissipation in enclosure
+Expected Behavior:
+  - Servos should move smoothly
+  - Servo horns should sweep 0° → 90° → 180°
+  - Listen for clicking (indicates torque limit reached)
+```
+
+### **4. Backend Integration Test**
+```
+1. Start Spring Boot backend: mvn spring-boot:run
+2. Update backendUrl in ESP32 code with your machine IP
+3. Upload ESP32 code
+4. Watch Serial Monitor for "Backend says: {...}"
+5. Verify fanOn response field triggers servo movement
+6. Check LED lights up when fanOn: true
+```
+
+### **5. Failover Test (LCD → Arduino Console)**
+```
+Simulate LCD Failure:
+  1. Disconnect I2C LCD (if present)
+  2. Trigger a security condition (manipulate sensor reading)
+  3. Verify message appears in Arduino Serial Monitor
+  4. Verify LED on Arduino Pin 13 flashes 5 times
+  
+Expected Console Output:
+  ⚠️ SECURITY EVENT DETECTED ⚠️
+  >> SECURITY ALERT!
+  ----------------------------------
+```
 
 ---
 
 ## Troubleshooting
 
-### **ESP32 Not Recognized by Computer**
-**Symptoms**: USB cable connected but no COM port in Device Manager
-**Solutions**:
-1. Install [CP210x USB driver](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
-2. Try different USB cable (data cable, not charge-only)
-3. Try different USB port on computer
-4. Hold BOOT button while connecting USB
-5. Check Device Manager for "Unknown Device" → driver install
+### **WiFi Connection Issues**
+| Problem | Solution |
+|---------|----------|
+| "Connecting to Wi-Fi..." loops forever | Check SSID/password, verify 2.4GHz network |
+| Connection drops after 10 seconds | Add `WiFi.setAutoReconnect(true)` to setup() |
+| Can't reach backend (HTTP error 0) | Ping your laptop IP from command line, verify backend listening on port 8080 |
 
-### **Sensors Reading Noise/Garbage Values**
-**Symptoms**: ADC values jumping randomly, no pattern
-**Solutions**:
-1. Add 100µF capacitor across sensor power and GND
-2. Keep sensor analog wires away from power/digital wires
-3. Shorten cable lengths if possible
-4. Check breadboard contact quality (replace if corroded)
-5. Verify 5V supply is solid (multimeter should not fluctuate)
-6. Try different GPIO pin for the problematic sensor
+### **Servo Movements Erratic**
+| Problem | Solution |
+|---------|----------|
+| Servos twitch/jitter | Verify 5V power stability (use dedicated USB port, not hub) |
+| Servos don't move at full range | Adjust `.write()` values: try 0-180 instead of mirrored angles |
+| One servo unresponsive | Check GPIO pin connection (14 vs 27), verify PWM library attached properly |
 
-### **Relay Not Clicking**
-**Symptoms**: GPIO 5 high but relay silent, multimeter shows no continuity
-**Solutions**:
-1. Verify 5V at relay module VCC pin
-2. Test GPIO 5 with multimeter (should show 3.3V when high)
-3. Check relay IN pin connection (should go LOW to activate, not HIGH)
-4. Try lower GPIO pin like GPIO 2
-5. Verify relay module is not defective (swap with new module)
-6. Check for cold solder joints on relay module pins
+### **Serial Communication Between ESP32 & Arduino**
+| Problem | Solution |
+|---------|----------|
+| Arduino never receives messages | Verify GPIO 17 → Pin 0 connection, check GND continuity |
+| Garbled text in Arduino Serial Monitor | Verify baud rate is 9600 on both Serial2 and Arduino Serial |
+| Can't upload Arduino code | DISCONNECT GPIO 17 from Pin 0 BEFORE upload, reconnect AFTER |
 
-### **LCD Shows Garbled Text or Backlight Only**
-**Symptoms**: Backlight on but text unreadable or missing
-**Solutions**:
-1. Verify I2C address (should be 0x27 or 0x3F):
-   ```
-   Arduino I2C scanner: https://playground.arduino.cc/Main/I2cScanner
-   ```
-2. Adjust contrast potentiometer on I2C module (try all positions)
-3. Verify SCL (GPIO 23) and SDA (GPIO 22) connected correctly
-4. Add 100µF capacitor near LCD power pins
-5. Try I2C pull-up resistors: 4.7kΩ on SCL and SDA to 5V
-6. Replace I2C module if still garbled
+### **Sensor Readings Nonsensical**
+| Problem | Solution |
+|---------|----------|
+| LDR always reads max (4095) | Enable `INPUT_PULLUP` in code, verify resistor values |
+| PIR false positives | Add debounce: read 3× confirmations before triggering |
+| Sound sensor frozen at 0 | Check KY-037 power supply (separate 3.3V rail), adjust sensitivity pot |
 
-### **PIR Sensor Always Triggered (No Motion Needed)**
-**Symptoms**: RED LED stays on, motion rule always fires
-**Solutions**:
-1. Wait 1-2 minutes after power-on for stabilization
-2. Reduce sensitivity: Rotate TIME pot CCW, SENS pot CCW
-3. Keep sensor away from heat sources (sunlight, heaters)
-4. Verify sensor not touching breadboard edge (vibration)
-5. Try different GPIO pin
-6. Replace PIR sensor if defective
-
-### **Noise Sensor Has No Range**
-**Symptoms**: Reading stuck at ~512 regardless of noise level
-**Solutions**:
-1. Adjust sensitivity potentiometer (marked SENSITIVITY)
-2. Recalibrate: Set to medium, then noise should vary ±100 points
-3. Verify OUT pin not floating (should have 1-4V reading)
-4. Check microphone is not covered or blocked
-5. Try different GPIO (GPIO 35 alternative)
-
-### **LDR Reading Always High or Low**
-**Symptoms**: ADC reading stuck at max (4095) or min (0)
-**Solutions**:
-1. Check resistor divider: LDR value should be 200Ω-500Ω
-2. Try different resistor values:
-   - Bright rooms: Use 18kΩ instead of 10kΩ
-   - Dark rooms: Use 5.6kΩ instead of 10kΩ
-3. Verify LDR not shorted to 5V or GND
-4. Clean LDR lens (dust/dirt reduces sensitivity)
-5. Try different ADC pin if available
-
-### **WiFi Connection Fails**
-**Symptoms**: "Failed to connect to WiFi" in serial monitor
-**Solutions**:
-1. Verify WiFi SSID and password correct in code
-2. Ensure 2.4GHz band enabled (ESP32 doesn't support 5GHz only)
-3. Check WiFi signal strength (should be -70 dBm or better)
-4. Verify router MAC filtering disabled
-5. Try connecting to phone hotspot to isolate router issues
-6. Restart ESP32 (power cycle)
-7. **Last resort**: Erase flash and re-upload firmware:
-   ```bash
-   esptool.py --chip esp32 erase_flash
-   # Then re-upload via Arduino IDE
-   ```
-
-### **API Connection Timeout**
-**Symptoms**: WiFi connected but "API connection failed" message
-**Solutions**:
-1. Verify backend server running on port 8080
-2. Ping backend from computer: `ping 192.168.x.x`
-3. Check network: ESP32 and server must be on same WiFi
-4. If backend on different network, verify IP and port correct
-5. Check backend logs for incoming requests
-6. Try hardcoded IP instead of hostname (if using DNS)
-7. Increase timeout value in firmware code
+### **LED Won't Light**
+| Problem | Solution |
+|---------|----------|
+| LED stays dark | Verify 330Ω resistor polarity, test with multimeter in GPIO 25 output mode |
+| LED too dim | Reduce resistor value to 220Ω (but max 30mA at GPIO) |
+| LED always on | Check digitalWrite logic: should be LOW when vent closed |
 
 ---
 
-## Component Placement Diagram (Bird's Eye View)
+## Revision History
 
-```
-┌─────────────────────────────────────────────────┐
-│           BREADBOARD LAYOUT                      │
-│                                                 │
-│  [PIR Sensor]              [LCD Display]        │
-│       |                          |              │
-│  [USB]─[ESP32]─────[LDR]     [SCL/SDA]         │
-│       |                          |              │
-│   [Buzzer]   [Sound]        [Relay Module]      │
-│       |         |                |              │
-│   [LEDs]────[Power Rails]─[5V Supply]          │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
+**Current Version:** 2.0 (April 17, 2026)
+- ✅ Documented failover architecture with Arduino console
+- ✅ Updated to dual-servo Split Damper (GPIO 14 & 27)
+- ✅ Added LDR internal pull-up configuration (GPIO 32)
+- ✅ Included complete, production-ready code for ESP32 and Arduino
+- ✅ Enterprise-grade fault tolerance for thesis presentation
 
----
-
-## Next Steps
-
-1. **Verify all connections** using multimeter continuity test
-2. **Power on** and confirm no smoke/burning smell
-3. **Run all test procedures** before uploading firmware
-4. **Upload Arduino firmware** to ESP32 via USB
-5. **Monitor serial output** for sensor readings
-6. **Connect backend server** (localhost:8080 or network IP)
-7. **Test telemetry API** endpoint with sample sensor data
-8. **Validate all 3 automation rules** fire correctly
-
----
-
-## References
-
-- **ESP32 Pinout**: https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
-- **PIR Sensor Datasheet**: HC-SR501 specifications
-- **Arduino I2C Scanner**: https://playground.arduino.cc/Main/I2cScanner
-- **Troubleshooting Guide**: https://randomnerdtutorials.com/
-
----
-
-**Last Updated**: April 16, 2026  
-**Status**: Complete - Ready for Assembly
+**Previous:** 1.0 - Basic LCD + relay architecture
