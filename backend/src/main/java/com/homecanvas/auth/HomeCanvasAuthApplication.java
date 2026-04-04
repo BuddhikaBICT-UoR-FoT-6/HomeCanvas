@@ -21,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // BCry
 // a strong hashing function designed for password hashing.
 
 // HomeCanvasAuthApplication is the entry point of the Spring Boot application. 
+// It includes explicit @ComponentScan to ensure IoT controllers and services are discovered.
 // It also defines a bean for BCryptPasswordEncoder, which is used for password
 // hashing in the authentication process.
 @SpringBootApplication
