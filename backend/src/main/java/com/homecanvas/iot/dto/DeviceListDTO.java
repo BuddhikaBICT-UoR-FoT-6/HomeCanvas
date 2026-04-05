@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeviceListDTO {
-    private Integer id;
+    private Long id;
     private String macAddress;
     private String name;
     private LocalDateTime lastSeen;

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class DeviceDetailDTO {
 
-    private Integer id;
+    private Long id;
     private String macAddress;
     private String name;
     private UserBasicDTO owner; // null if device not yet claimed by user
@@ -19,4 +19,10 @@ public class DeviceDetailDTO {
     private LocalDateTime lastSeen;
     private String onlineStatus; // "ONLINE", "OFFLINE", "UNKNOWN"
     private SensorEventDTO lastTelemetry; // latest sensor reading (null if no readings yet)
+    
+    // Automation state overrides
+    private Boolean lastCommandFanOn;
+    private Boolean lastCommandLedOn;
+    private String lastCommandLcdMessage;
+    private Integer lastCommandServoAngle;
 }

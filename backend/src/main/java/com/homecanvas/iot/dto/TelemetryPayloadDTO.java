@@ -19,7 +19,7 @@ public class TelemetryPayloadDTO {
 
     // The timestamp of when the telemetry data was recorded on the device. This is important for time-series analysis and correlating events.
     @NotNull(message = "Timestamp is required")
-    private LocalDateTime timestamp;
+    private LocalDateTime timestamp = LocalDateTime.now(); // Default to now if not provided
 
     private Integer lightLevel;      // 0-1023 from LDR sensor
     private Integer noiseLevel;      // 0-1023 from sound sensor
