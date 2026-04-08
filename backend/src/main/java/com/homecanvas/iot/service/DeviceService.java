@@ -34,7 +34,12 @@ public class DeviceService {
 
     // Get all devices owned by the user, with basic info for listing page 
     public List<DeviceListDTO> getDevicesByUser(User user){
-        List<Device> devices = deviceRepository.findByOwner(user);
+        List<Device> devices;
+        if (user == null) {
+            devices = deviceRepository.findByOwnerIsNull();
+        } else {
+            devices = deviceRepository.findByOwnerOrOwnerIsNull(user);
+        }
         // Convert the list of Device entities to a list of DeviceListDTOs 
         // for the API response using Java Streams to map each Device to a 
         // DeviceListDTO and collect the results into a List.
@@ -45,10 +50,15 @@ public class DeviceService {
     }
 
     // Get detailed info of a specific device, including last telemetry data for the dashboard
-    public DeviceDetailDTO getDeviceDetail(Integer deviceId, User user){
+    public DeviceDetailDTO getDeviceDetail(Long deviceId, User user){
         // First, we need to find the device by its ID and ensure it belongs to the user.
-        Device device = deviceRepository.findByIdAndOwner(Long.valueOf(deviceId), user)
-            .orElse(null);
+        Device device;
+        if (user == null) {
+            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
+        } else {
+            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
+                .orElse(null);
+        }
 
         // If the device does not exist or does not belong to the user, return null.
         if(device == null){
@@ -70,9 +80,14 @@ public class DeviceService {
     }
 
     // Get paginated telemetry history for a device, with access control to ensure the user owns the device.
-    public PagedTelemetryDTO getTelemetryHistory(Integer deviceId, User user, Pageable pageable){
-        Device device = deviceRepository.findByIdAndOwner(Long.valueOf(deviceId), user)
-            .orElse(null); // If the device does not exist or does not belong to the user, return null or throw an exception.
+    public PagedTelemetryDTO getTelemetryHistory(Long deviceId, User user, Pageable pageable){
+        Device device;
+        if (user == null) {
+            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
+        } else {
+            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
+                .orElse(null); // If the device does not exist or does not belong to the user, return null or throw an exception.
+        }
         
         if(device == null){
             return null;
@@ -99,10 +114,15 @@ public class DeviceService {
     }
 
     // Get paginated action audit log for a device, ensuring the user owns the device.
-    public PagedActionAuditDTO getActionAudit(Integer deviceId, User user, Pageable pageable){
-        Device device = deviceRepository.findByIdAndOwner(Long.valueOf(deviceId), user)
-            .orElse(null); // If the device does not exist or does not belong to the user, 
-            // return null or throw an exception. 
+    public PagedActionAuditDTO getActionAudit(Long deviceId, User user, Pageable pageable){
+        Device device;
+        if (user == null) {
+            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
+        } else {
+            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
+                .orElse(null); // If the device does not exist or does not belong to the user, 
+                // return null or throw an exception. 
+        }
         
         if(device == null){
             return new PagedActionAuditDTO(); // return empty result or throw exception
@@ -168,7 +188,11 @@ public class DeviceService {
             device.getCreatedAt(),
             device.getLastSeen(),
             onlineStatus,
-            lastTelemetry
+            lastTelemetry,
+            device.getLastCommandFanOn(),
+            device.getLastCommandLedOn(),
+            device.getLastCommandLcdMessage(),
+            device.getLastCommandServoAngle()
         );
 
     }
@@ -208,6 +232,57 @@ public class DeviceService {
         } else {
             return "Offline";
         }
+    }
+
+    // Send a control command to a specific device. The command contains desired state for
+    // fanOn, ledOn, displayText, and servoAngle. This method stores the command for the 
+    // device to retrieve on its next telemetry poll.
+    public DeviceCommandDTO sendCommand(Long deviceId, User user, DeviceCommandDTO command) {
+        Device device;
+        if (user == null) {
+            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
+        } else {
+            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
+                .orElse(null);
+        }
+        
+        if(device == null){
+            return new DeviceCommandDTO(); // Return empty command if device not found/unauthorized
+        }
+
+        // Store the command state on the device entity for later retrieval during telemetry processing.
+        // The device will fetch these on its next telemetry poll and apply the commands.
+        if (command.getFanOn() != null) {
+            device.setLastCommandFanOn(command.getFanOn());
+            device.setLastCommandAt(LocalDateTime.now());
+        }
+        if (command.getResetFanAuto() != null && command.getResetFanAuto()) {
+            device.setLastCommandFanOn(null);
+            device.setLastCommandAt(LocalDateTime.now());
+        }
+
+        if (command.getLedOn() != null) {
+            device.setLastCommandLedOn(command.getLedOn());
+            device.setLastCommandAt(LocalDateTime.now());
+        }
+        if (command.getResetLedAuto() != null && command.getResetLedAuto()) {
+            device.setLastCommandLedOn(null);
+            device.setLastCommandAt(LocalDateTime.now());
+        }
+
+        if (command.getLcdMessage() != null) {
+            device.setLastCommandLcdMessage(command.getLcdMessage());
+            device.setLastCommandAt(LocalDateTime.now());
+        }
+        if (command.getServoAngle() != null) {
+            device.setLastCommandServoAngle(command.getServoAngle());
+            device.setLastCommandAt(LocalDateTime.now());
+        }
+        
+        deviceRepository.save(device);
+
+        // Return the same command confirming receipt
+        return command;
     }
 
 }

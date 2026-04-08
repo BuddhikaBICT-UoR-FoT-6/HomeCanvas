@@ -19,7 +19,19 @@ public interface DeviceRepository extends JpaRepository<Device, Long>{
     // Dashboard: "Show me all my smart home nodes"
     List<Device> findByOwner(User owner);
 
+    // Include unclaimed auto-registered devices so dashboard can discover them.
+    List<Device> findByOwnerOrOwnerIsNull(User owner);
+
+    // Read unclaimed devices when no user context is available.
+    List<Device> findByOwnerIsNull();
+
     // Find device by ID and verify ownership (authorization check)
     Optional<Device> findByIdAndOwner(Long id, User owner);
+
+    // Find device by ID and verify ownership OR if it's unclaimed (for auto-registration)
+    Optional<Device> findByIdAndOwnerOrOwnerIsNull(Long id, User owner);
+
+    // Find device by ID and verify it's unclaimed (for auto-registration)
+    Optional<Device> findByIdAndOwnerIsNull(Long id);
 
 }
