@@ -37,38 +37,37 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginF
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        if (!username || !password) {
+            showToast('Please enter both username and password', 'error');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            if (!username || !password) {
-                showToast('Please enter both username and password', 'error');
-                setLoading(false);
-                return;
-            }
-
             const response = await authAPI.login({ username, password });
 
             if (response.data.success) {
-                showToast(`Welcome back, ${response.data.data.username}!`, 'success');
                 localStorage.setItem('token', response.data.data.token);
                 localStorage.setItem('user', JSON.stringify(response.data.data));
                 localStorage.setItem('userId', response.data.data.id);
-
-                if (onLoginSuccess) {
-                    onLoginSuccess(response.data.data);
-                }
-
+                
+                showToast(`✅ Welcome back, ${response.data.data.username}!`, 'success');
+                
                 setUsername('');
                 setPassword('');
 
+                // Navigate after storing token
                 setTimeout(() => {
-                    window.location.href = '/devices';
-                }, 2000);
+                    if (onLoginSuccess) {
+                        onLoginSuccess(response.data.data);
+                    }
+                }, 800);
             }
         } catch (err: any) {
             const errorMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
-            showToast(errorMsg, 'error');
-        } finally {
+            showToast(`❌ ${errorMsg}`, 'error');
             setLoading(false);
         }
     };
@@ -143,7 +142,11 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginF
                     <p className="text-gray-600 text-sm">
                         Don't have an account?{' '}
                         <button
-                            onClick={onSwitchToRegister}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onSwitchToRegister?.();
+                            }}
                             className="text-blue-600 font-bold hover:text-blue-800 hover:underline bg-none border-none cursor-pointer transition"
                         >
                             Create one now
