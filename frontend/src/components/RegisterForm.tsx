@@ -107,14 +107,17 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
         try {
             const response = await authAPI.register(formData);
             if (response.data.success) {
-                showToast(`Welcome, ${formData.username}! Account created successfully.`, 'success');
-                if (onRegisterSuccess) onRegisterSuccess(response.data.data);
-                setTimeout(() => onSwitchToLogin?.(), 2000);
+                showToast(`✅ Welcome, ${formData.username}! Account created successfully.`, 'success');
+                setFormData({ username: '', password: '', confirmPassword: '', role: 'USER' });
+                setFieldErrors({});
+                
+                setTimeout(() => {
+                    if (onRegisterSuccess) onRegisterSuccess(response.data.data);
+                }, 1000);
             }
         } catch (err: any) {
             const errorMsg = err.response?.data?.message || 'Registration failed. Please try again.';
-            showToast(errorMsg, 'error');
-        } finally {
+            showToast(`❌ ${errorMsg}`, 'error');
             setLoading(false);
         }
     };
@@ -205,7 +208,11 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
                     <p className="text-gray-600 text-sm">
                         Already have an account?{' '}
                         <button
-                            onClick={onSwitchToLogin}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onSwitchToLogin?.();
+                            }}
                             className="text-blue-600 font-bold hover:text-blue-800 hover:underline bg-none border-none cursor-pointer transition"
                         >
                             Sign in here
