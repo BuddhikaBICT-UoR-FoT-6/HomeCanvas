@@ -20,6 +20,9 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // Defines the security filter chain for the application. It configures CORS, disables CSRF protection, sets the session 
+    // management to stateless, and defines authorization rules for HTTP requests. In this configuration, all requests to 
+    // "/api/auth/**" are permitted without authentication, while all other requests are also permitted (this should be adjusted for production use).
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -34,13 +37,21 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // Defines the CORS configuration source for the application. It specifies the allowed origins, methods, headers, 
+    // and other CORS properties. The allowed origins include local development servers on ports 5173, 5174, and 3000, 
+    // as well as their 127.0.0.1 equivalents. The allowed methods include GET, POST, PUT, DELETE, OPTIONS, and PATCH. 
+    // The allowed headers include all headers (*). Credentials are allowed, and the max age is set to 3600 seconds 
+    // (1 hour). This configuration allows the frontend applications 
+    // running on the specified origins to make cross-origin requests to the backend API.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173",
+            "http://localhost:5174",
             "http://localhost:3000",
             "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
             "http://127.0.0.1:3000"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

@@ -17,7 +17,10 @@ import org.springframework.security.core.context.SecurityContextHolder; // Secur
 import com.homecanvas.iot.dto.*;
 import com.homecanvas.iot.service.DeviceService;
 import com.homecanvas.auth.model.User;
+import com.homecanvas.auth.repository.UserRepository;
 import java.util.List;
+import java.util.Optional;
+import java.util.Collections;
 
 // This controller handles HTTP requests related to device management, including listing devices, 
 // getting device details, fetching telemetry history, and retrieving action audit trails. It uses the DeviceService to perform business logic and interacts with the data layer. For simplicity, it currently uses a mock user for authentication purposes, which should be replaced with actual authentication in a production environment.
@@ -27,13 +30,30 @@ public class DeviceController {
     @Autowired
     private DeviceService deviceService;
 
-    // Helper: Extract authenticated user from JWT token
-    private User getAuthenticatedUser() {
+    @Autowired
+    private UserRepository userRepository;
+
+    // Helper: Resolve authenticated user from security context.
+    // Returns empty when request is anonymous or user cannot be resolved.
+    private Optional<User> resolveAuthenticatedUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
+            return Optional.empty();
         }
-        return (User) auth.getPrincipal();
+
+        Object principal = auth.getPrincipal();
+        if (principal instanceof User) {
+            return Optional.of((User) principal);
+        }
+
+        if (principal instanceof String) {
+            String username = (String) principal;
+            if (!"anonymousUser".equalsIgnoreCase(username)) {
+                return userRepository.findByUsername(username);
+            }
+        }
+
+        return Optional.empty();
     }
 
     // Get a list of devices owned by the user. This endpoint returns basic information about each 
@@ -41,8 +61,13 @@ public class DeviceController {
     // authentication, which should be replaced with actual user authentication in a real application.
     @GetMapping
     public List<DeviceListDTO> getDevices() {
-        User user = getAuthenticatedUser();
-        return deviceService.getDevicesByUser(user);
+        try {
+            Optional<User> userOptional = resolveAuthenticatedUser();
+            User user = userOptional.orElse(null);
+            return deviceService.getDevicesByUser(user);
+        } catch (Exception ex) {
+            return Collections.emptyList();
+        }
     }
 
     // Get detailed info of a specific device, including last telemetry data for the dashboard view. 
@@ -51,8 +76,9 @@ public class DeviceController {
     // returns null.
     @GetMapping("/{id}")
     public DeviceDetailDTO getDeviceDetail(@PathVariable Long id) {
-        User user = getAuthenticatedUser();
-        return deviceService.getDeviceDetail(id.intValue(), user);
+        Optional<User> userOptional = resolveAuthenticatedUser();
+        User user = userOptional.orElse(null);
+        return deviceService.getDeviceDetail(id, user);
 
     }
 
@@ -63,11 +89,12 @@ public class DeviceController {
     // authentication in a production environment.
     @GetMapping("/{id}/telemetry")
     public PagedTelemetryDTO getTelemetryHistory(
-        @PathVariable Integer id,
+        @PathVariable Long id,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        User user = getAuthenticatedUser();
+        Optional<User> userOptional = resolveAuthenticatedUser();
+        User user = userOptional.orElse(null);
         Pageable pageable = PageRequest.of(page, size);
         return deviceService.getTelemetryHistory(id, user, pageable);
     }
@@ -79,15 +106,29 @@ public class DeviceController {
     // action audit data. It returns a PagedActionAuditDTO containing the action logs for the specified device. 
     @GetMapping("/{id}/actions")
     public PagedActionAuditDTO getActionAudit(
-        @PathVariable Integer id,
+        @PathVariable Long id,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        User user = getAuthenticatedUser();
+        Optional<User> userOptional = resolveAuthenticatedUser();
+        User user = userOptional.orElse(null);
         Pageable pageable = PageRequest.of(page, size);
         return deviceService.getActionAudit(id, user, pageable);
     }
 
+    // Send a control command to a specific device. The device ID is passed as a path variable,
+    // and the command parameters (fanOn, ledOn, displayText, servoAngle) are passed in the request body
+    // as a DeviceCommandDTO. This endpoint stores the command for the device to retrieve on its next 
+    // telemetry poll, or returns it immediately if appropriate.
+    @PostMapping("/{id}/command")
+    public DeviceCommandDTO sendCommand(
+        @PathVariable Long id,
+        @RequestBody DeviceCommandDTO command
+    ) {
+        Optional<User> userOptional = resolveAuthenticatedUser();
+        User user = userOptional.orElse(null);
+        return deviceService.sendCommand(id, user, command);
+    }
 
     
 }
