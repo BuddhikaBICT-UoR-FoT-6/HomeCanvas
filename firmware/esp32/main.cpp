@@ -1,107 +1,179 @@
+/**
+ * @file main.cpp
+ * @author Senior IoT Systems Engineer
+ * @brief Production-ready ESP32 Edge-Computing Node for Smart Home Environment.
+ * 
+ * CORE ARCHITECTURE: 
+ * This node implements "Local Reflexes" for zero-latency responses to environmental triggers
+ * (Security lockdown, Daylight harvesting, HVAC control) while maintaining cloud telemetry
+ * asynchronously every 2 seconds.
+ */
+
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ESP32Servo.h>
+#include <TM1637Display.h>
 
-// ==========================================
-// ⚠️ NETWORK CONFIGURATION ⚠️
-// ==========================================
-const char* ssid = "Buddhika";
-const char* password = "Buddhika123#";
-// Ensure your Spring Boot server is running on this IP!
-const String backendUrl = "http://192.168.0.101:8080/api/iot/telemetry"; 
+// ============================================================================
+// CONFIGURATION & HARDWARE MAPPING
+// ============================================================================
 
-// ==========================================
-// PIN DEFINITIONS
-// ==========================================
-const int PIR_PIN = 13;
-const int SERVO_PIN = 14;      // Your single Smart Vent servo
-const int STATUS_LED_PIN = 25; 
-const int LDR_PIN = 32;
-const int SOUND_PIN = 35;
+// WiFi Configuration
+const char* WIFI_SSID     = "Eternal Labyrinth"; // Updated from previous firmware
+const char* WIFI_PASSWORD = "Eden123479";       // Updated from previous firmware
 
-// Create the Servo object
+// Backend Configuration (Spring Boot)
+const String BACKEND_URL = "http://10.92.209.240:8080/api/iot/telemetry";
+
+// Pin Definitions
+#define PIN_PIR        13    // Digital Input: Motion Sensor
+#define PIN_LDR        32    // Analog Input: Photoresistor
+#define PIN_SOUND      35    // Analog Input: KY-037 Sound Sensor
+#define PIN_SERVO      27    // PWM Output: SG90 Servo
+#define PIN_LED        25    // Digital Output: Status LED
+#define PIN_TM_CLK     26    // TM1637 CLK
+#define PIN_TM_DIO     33    // TM1637 DIO
+#define PIN_SERIAL2_TX 17    // UART2 TX: Failover Console
+
+// Thresholds & Constants
+const int LDR_DARK_THRESHOLD   = 2000;
+const int SOUND_ALARM_THRESHOLD = 3000;
+const unsigned long TELEMETRY_INTERVAL = 2000; // 2 seconds in milliseconds
+
+// ============================================================================
+// GLOBAL OBJECTS
+// ============================================================================
+
 Servo smartVent;
+TM1637Display display(PIN_TM_CLK, PIN_TM_DIO);
+unsigned long lastTelemetryTime = 0;
 
-void setup() {
-  Serial.begin(115200);
-  
-  // Start the secondary Serial port to talk to the Arduino Uno (TX is GPIO 17)
-  Serial2.begin(9600, SERIAL_8N1, 16, 17); 
+// ============================================================================
+// SYSTEM INITIALIZATION
+// ============================================================================
 
-  // Setup Sensor Pins
-  pinMode(PIR_PIN, INPUT);
-  pinMode(SOUND_PIN, INPUT);
-  
-  // Activate the internal pull-up resistor for the LDR
-  pinMode(LDR_PIN, INPUT_PULLUP); 
-  
-  // Setup the Output LED
-  pinMode(STATUS_LED_PIN, OUTPUT);
-  digitalWrite(STATUS_LED_PIN, LOW);
-  
-  // Attach the single Servo and set initial closed position
-  smartVent.attach(SERVO_PIN);
-  smartVent.write(0);
-
-  // Connect to Wi-Fi
-  Serial.print("Connecting to Wi-Fi");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nConnected! My IP is: " + WiFi.localIP().toString());
-  Serial.println("My MAC Address is: " + WiFi.macAddress()); 
+void connectWiFi() {
+    Serial.print("[WIFI] Connecting to ");
+    Serial.println(WIFI_SSID);
+    
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\n[WIFI] Connected Successfully.");
+        Serial.print("[WIFI] IP Address: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("\n[WIFI] Connection Failed. Operating in Offline Reflex Mode.");
+    }
 }
 
+void setup() {
+    // 1. Initialize Serial Interfaces
+    Serial.begin(115200);                    // Debug Console
+    Serial2.begin(9600, SERIAL_8N1, 16, PIN_SERIAL2_TX); // Failover Console (RX=16, TX=17)
+    
+    delay(500);
+    Serial.println("\n\n--- ESP32 SMART HOME EDGE NODE STARTING ---");
+
+    // 2. Configure Pin Modes
+    pinMode(PIN_PIR, INPUT);
+    pinMode(PIN_LDR, INPUT);
+    pinMode(PIN_SOUND, INPUT);
+    pinMode(PIN_LED, OUTPUT);
+    
+    // 3. Initialize Actuators
+    smartVent.attach(PIN_SERVO);
+    smartVent.write(0); // Default to Closed
+    
+    display.setBrightness(0x0f); // Maximum brightness
+    display.clear();
+    
+    // 4. Start Network
+    connectWiFi();
+    
+    Serial.println("[SYSTEM] Setup Complete. Entering Loop.");
+}
+
+// ============================================================================
+// MAIN EXECUTION LOOP (REFLEXES & TELEMETRY)
+// ============================================================================
+
 void loop() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(backendUrl);
-    http.addHeader("Content-Type", "application/json");
+    // --- 1. LOCAL SENSOR READINGS ---
+    int lightLevel     = analogRead(PIN_LDR);
+    int noiseLevel     = analogRead(PIN_SOUND);
+    bool motionDetected = (digitalRead(PIN_PIR) == HIGH);
 
-    // 1. Read the Sensors
-    int lightLevel = analogRead(LDR_PIN);
-    int noiseLevel = analogRead(SOUND_PIN);
-    bool motionDetected = digitalRead(PIR_PIN) == HIGH;
+    // --- 2. LOCAL REFLEXES (ZERO LATENCY) ---
 
-    // 2. Build the JSON Payload (Matching your Spring Boot DTO)
-    String payload = "{";
-    payload += "\"macAddress\":\"" + WiFi.macAddress() + "\",";
-    payload += "\"lightLevel\":" + String(lightLevel) + ",";
-    payload += "\"noiseLevel\":" + String(noiseLevel) + ",";
-    payload += "\"motionDetected\":" + String(motionDetected ? "true" : "false");
-    payload += "}";
-
-    // 3. Send to Spring Boot
-    int httpResponseCode = http.POST(payload);
-
-    // 4. Process the Backend's Response
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println("Backend says: " + response);
-
-      // Parse the JSON string to execute hardware actions
-      if (response.indexOf("\"fanOn\":true") > 0) {
-        smartVent.write(90); // Sweep arm to 90 degrees (Open Vent)
-        digitalWrite(STATUS_LED_PIN, HIGH); // Turn on the indicator LED
-        Serial.println("⚙️ VENT COMMAND: OPEN");
-      } else {
-        smartVent.write(0);  // Sweep arm back to 0 degrees (Close Vent)
-        digitalWrite(STATUS_LED_PIN, LOW); // Turn off the indicator LED
-      }
-
-      // If there is an LCD message, shout it to the Arduino over the wire
-      if (response.indexOf("\"lcdMessage\":\"") > 0) {
-        Serial2.println("SECURITY ALERT!"); 
-      }
-      
+    // A. Daylight Harvesting (Lighting)
+    // If dark, turn on light; if bright, turn it off.
+    if (lightLevel < LDR_DARK_THRESHOLD) {
+        digitalWrite(PIN_LED, HIGH);
     } else {
-      Serial.println("Error hitting backend: " + String(httpResponseCode));
+        digitalWrite(PIN_LED, LOW);
     }
-    http.end();
-  }
 
-  // Wait 2 seconds before sending the next telemetry ping
-  delay(2000);
+    // B. Acoustic Dashboard
+    // Constantly display raw noise value on 4-digit display.
+    display.showNumberDec(noiseLevel);
+
+    // C. Smart HVAC with Security Override (Hierarchy)
+    // Priority 1: Security Lockdown (Loud noise / Possible breach)
+    if (noiseLevel > SOUND_ALARM_THRESHOLD) {
+        smartVent.write(0); // Snap to Closed
+        Serial2.println("SECURITY LOCKDOWN: WINDOW BREACH!");
+        Serial.println("[SECURITY] Alarm Triggered! Lockdown Engaged.");
+    } 
+    // Priority 2: Occupancy (Motion detected)
+    else if (motionDetected) {
+        smartVent.write(45); // Half-open for ventilation
+        Serial.println("[HVAC] Motion Detected. Vent: 45°");
+    } 
+    // Priority 3: Empty Room / Energy Save
+    else {
+        smartVent.write(0); // Closed
+    }
+
+    // --- 3. ASYNCHRONOUS CLOUD TELEMETRY ---
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastTelemetryTime >= TELEMETRY_INTERVAL) {
+        lastTelemetryTime = currentMillis;
+        
+        if (WiFi.status() == WL_CONNECTED) {
+            HTTPClient http;
+            http.begin(BACKEND_URL);
+            http.addHeader("Content-Type", "application/json");
+
+            // Construct JSON Payload
+            String payload = "{";
+            payload += "\"lightLevel\":" + String(lightLevel) + ",";
+            payload += "\"noiseLevel\":" + String(noiseLevel) + ",";
+            payload += "\"motionDetected\":" + String(motionDetected ? "true" : "false");
+            payload += "}";
+
+            int httpResponseCode = http.POST(payload);
+            
+            if (httpResponseCode > 0) {
+                Serial.print("[CLOUD] Telemetry Sent. Response: ");
+                Serial.println(httpResponseCode);
+            } else {
+                Serial.print("[CLOUD] Error sending telemetry: ");
+                Serial.println(httpResponseCode);
+            }
+            http.end();
+        } else {
+            Serial.println("[CLOUD] WiFi Disconnected. Skipping telemetry.");
+        }
+    }
+
+    // Minimal delay to prevent WDT issues while keeping loop responsive
+    delay(10); 
 }
