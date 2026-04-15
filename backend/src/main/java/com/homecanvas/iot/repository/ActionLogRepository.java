@@ -20,9 +20,7 @@ public interface ActionLogRepository extends JpaRepository<ActionLog, Long>{
     // Get actions triggered within a time range (for analytics)
     List<ActionLog> findByTriggeredAtBetween(LocalDateTime startTime, LocalDateTime endTime);
 
-    // Get recent actions from a device (audit trail)
-    // findByTriggeredAtBetween(14:00, 15:00)
-    // Analytics: "System activity between 14:00-15:00"
-    List<ActionLog> findByDeviceOrderByTriggeredAtDescLimit(Device device, int limit);
+    // Get top 10 recent actions from a device (audit trail)
+    List<ActionLog> findTop10ByDeviceOrderByTriggeredAtDesc(Device device);
     
 }
