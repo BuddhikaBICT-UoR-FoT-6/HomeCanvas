@@ -9,6 +9,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication; // @SpringB
 import org.springframework.context.annotation.Bean; // @Bean is an annotation that 
 // indicates that a method produces a bean to be managed by the Spring container. A bean is an object 
 // that is instantiated, assembled, and otherwise managed by a Spring IoC container. 
+import org.springframework.boot.autoconfigure.domain.EntityScan; // @EntityScan is used to specify
+// the packages to scan for JPA entities. By default, only the package containing the main class
+// is scanned.
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories; // @EnableJpaRepositories
+// enables Spring Data JPA repository scanning in specified packages.
+import org.springframework.context.annotation.ComponentScan; // @ComponentScan enables component scanning
+// for specified packages to ensure controllers and services are discovered and registered as beans.
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // BCryptPasswordEncoder is a
 // class that provides a method to hash passwords using the BCrypt algorithm, which is
 // a strong hashing function designed for password hashing.
@@ -17,6 +24,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // BCry
 // It also defines a bean for BCryptPasswordEncoder, which is used for password
 // hashing in the authentication process.
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.homecanvas.auth", "com.homecanvas.iot"})
+@EntityScan(basePackages = {"com.homecanvas.auth.model", "com.homecanvas.iot.model"})
+@EnableJpaRepositories(basePackages = {"com.homecanvas.auth.repository", "com.homecanvas.iot.repository"})
 public class HomeCanvasAuthApplication {
     public static void main(String[] args) {
         // The main method is the entry point of the application. It calls 
