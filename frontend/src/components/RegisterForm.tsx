@@ -23,7 +23,7 @@ const Toast = ({ message, type, visible }: { message: string; type: string; visi
 
 const InputField = ({ label, name, type = 'text', placeholder, required = false, formData, fieldErrors, handleChange }: any) => (
     <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
             {label} {required && <span className="text-red-500">*</span>}
         </label>
         <input 
@@ -32,8 +32,10 @@ const InputField = ({ label, name, type = 'text', placeholder, required = false,
             value={formData[name as keyof typeof formData]}
             onChange={handleChange}
             placeholder={placeholder}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition placeholder-gray-400 ${
-                fieldErrors[name] ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+            className={`w-full rounded-lg border px-4 py-3 outline-none transition placeholder-slate-400 ${
+                fieldErrors[name]
+                    ? 'border-red-500 bg-red-50 text-slate-900 focus:ring-2 focus:ring-red-500 dark:bg-red-950/40 dark:text-slate-100'
+                    : 'border-slate-300 bg-white/80 text-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/40 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-100'
             }`}
         />
         {fieldErrors[name] && required && <p className="text-red-500 text-sm mt-1">This field is required</p>}
@@ -124,7 +126,7 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
 
     return (
         <div 
-            className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-fixed"
+            className="hc-page relative flex min-h-screen items-center justify-center bg-cover bg-center bg-fixed p-4"
             style={{ backgroundImage: 'url(/background.jpg)' }}
         >
             {/* Overlay */}
@@ -132,13 +134,13 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
 
             <Toast message={toast.message} type={toast.type} visible={toast.visible} />
 
-            <div className="relative z-10 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20">
+            <div className="hc-glass relative z-10 w-full max-w-md rounded-2xl p-8 shadow-2xl">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
+                    <h1 className="mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-4xl font-bold text-transparent">
                         🏠 HomeCanvas
                     </h1>
-                    <p className="text-gray-600 text-sm">Create Your Smart Home Account</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Create Your Smart Home Account</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -173,12 +175,12 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
                     />
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Account Type</label>
+                        <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">Account Type</label>
                         <select
                             name="role"
                             value={formData.role}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                            className="w-full rounded-lg border border-slate-300 bg-white/80 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/40 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-100"
                         >
                             <option value="USER">Regular User</option>
                             <option value="ADMIN">System Administrator</option>
@@ -188,7 +190,7 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 disabled:hover:scale-100 shadow-lg disabled:shadow-none"
+                        className="mt-6 w-full rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 font-bold text-white shadow-lg transition hover:scale-105 hover:from-cyan-400 hover:to-blue-500 disabled:from-slate-500 disabled:to-slate-600 disabled:hover:scale-100 disabled:shadow-none"
                     >
                         {loading ? (
                             <span className="flex items-center justify-center gap-2">
@@ -204,8 +206,8 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
                     </button>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-                    <p className="text-gray-600 text-sm">
+                <div className="mt-8 border-t border-slate-300/40 pt-6 text-center dark:border-slate-700/50">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
                         Already have an account?{' '}
                         <button
                             type="button"
@@ -213,7 +215,7 @@ export default function RegisterForm({ onRegisterSuccess, onSwitchToLogin }: Reg
                                 e.preventDefault();
                                 onSwitchToLogin?.();
                             }}
-                            className="text-blue-600 font-bold hover:text-blue-800 hover:underline bg-none border-none cursor-pointer transition"
+                            className="cursor-pointer border-none bg-none font-bold text-cyan-500 transition hover:text-cyan-400 hover:underline"
                         >
                             Sign in here
                         </button>
