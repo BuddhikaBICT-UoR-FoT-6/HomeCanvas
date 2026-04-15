@@ -22,9 +22,9 @@ public class Device {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY) // many devices can belong to one user, and the user data
-    // is loaded lazily
-    @JoinColumn(name = "owner_id", nullable = false) // foreign key column "owner_id" in the "devices"
-    // table, cannot be null which has a reference to the "users" table 
+    // is loaded lazily. Owner can be null for auto-registered devices until claimed by a user.
+    @JoinColumn(name = "owner_id", nullable = true) // foreign key column "owner_id" in the "devices"
+    // table, CAN be null to allow auto-register devices before user claims them 
     private User owner;
 
     @Column(unique = true, nullable = false, length = 17)
