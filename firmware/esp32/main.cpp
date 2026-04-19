@@ -14,15 +14,13 @@ const String backendUrl = "http://YOUR_LAPTOP_IP:8080/api/iot/telemetry";
 // PIN DEFINITIONS
 // ==========================================
 const int PIR_PIN = 13;
-const int LEFT_SERVO_PIN = 14;
-const int RIGHT_SERVO_PIN = 27;
+const int SERVO_PIN = 14;      // Your single Smart Vent servo
 const int STATUS_LED_PIN = 25; 
 const int LDR_PIN = 32;
 const int SOUND_PIN = 35;
 
-// Create the Servo objects for the Split Damper
-Servo leftVent;
-Servo rightVent;
+// Create the Servo object
+Servo smartVent;
 
 void setup() {
   Serial.begin(115200);
@@ -41,11 +39,9 @@ void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
   digitalWrite(STATUS_LED_PIN, LOW);
   
-  // Attach the Servos and set initial closed position (Mirrored angles)
-  leftVent.attach(LEFT_SERVO_PIN);
-  rightVent.attach(RIGHT_SERVO_PIN);
-  leftVent.write(0); 
-  rightVent.write(180);
+  // Attach the single Servo and set initial closed position
+  smartVent.attach(SERVO_PIN);
+  smartVent.write(0);
 
   // Connect to Wi-Fi
   Serial.print("Connecting to Wi-Fi");
@@ -87,15 +83,11 @@ void loop() {
 
       // Parse the JSON string to execute hardware actions
       if (response.indexOf("\"fanOn\":true") > 0) {
-        // Sweep both doors to 90 degrees (Straight open!)
-        leftVent.write(90); 
-        rightVent.write(90);
+        smartVent.write(90); // Sweep arm to 90 degrees (Open Vent)
         digitalWrite(STATUS_LED_PIN, HIGH); // Turn on the indicator LED
-        Serial.println("⚙️ VENT COMMAND: SPLIT DOORS OPEN");
+        Serial.println("⚙️ VENT COMMAND: OPEN");
       } else {
-        // Sweep doors back to opposite closed positions
-        leftVent.write(0);  
-        rightVent.write(180);
+        smartVent.write(0);  // Sweep arm back to 0 degrees (Close Vent)
         digitalWrite(STATUS_LED_PIN, LOW); // Turn off the indicator LED
       }
 
