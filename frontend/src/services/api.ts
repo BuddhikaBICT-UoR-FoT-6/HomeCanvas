@@ -54,6 +54,9 @@ export const deviceAPI = {
         API.get(`/devices/${id}/telemetry`, { params: { page, size } }), // Get device telemetry history
     getActions: (id: number, page: number = 0, size: number = 10) => 
         API.get(`/devices/${id}/actions`, { params: { page, size } }), // Get device action logs
+    // Send device commands to control hardware
+    sendCommand: (deviceId: number, command: any) => 
+        API.post(`/devices/${deviceId}/command`, command), // Send control command (servo, LED, etc.)
 };
 
 // Export the API instance for direct access if needed
