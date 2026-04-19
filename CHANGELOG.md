@@ -5,29 +5,151 @@ All notable changes to HomeCanvas project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-04-12
+
+### 🎉 Production Release: Complete Smart Home Automation Platform
+
+#### ✨ Frontend Enhancements
+- **Professional UI Design**
+  - Beautiful login/register pages with background imagery
+  - Glassmorphism card design with backdrop blur
+  - Responsive layout for all device sizes
+  - Gradient text and button effects
+
+- **Toast Notifications**
+  - Professional error/success notifications
+  - Slide-in animation from top-right
+  - Automatic dismissal after 3.5 seconds
+  - Icon indicators (✅/❌)
+
+- **Real-Time Dashboard**
+  - 4-sensor monitoring cards (Light, Noise, Motion, Servo)
+  - Auto-refresh every 2 seconds
+  - Live device status updates
+  - Color-coded sensor indicators
+
+- **Device Control Interface**
+  - Servo ON/OFF button with visual feedback
+  - LED control toggle
+  - Manual refresh capability
+  - Loading states and disabled button handling
+
+- **Improved Device Listing**
+  - Quick sensor status on each card
+  - Online/offline badges with icons
+  - Last update timestamps
+  - Hover effects and animations
+
+#### 🚀 ESP32 Firmware Improvements
+- **Sound Sensor Integration**
+  - Added SOUND_THRESHOLD constant (100)
+  - Smart display logic: show noise level when sound detected, else 0000
+  - Serial debug output for monitoring
+  - Proper 4-digit display formatting
+
+- **Display Enhancement**
+  - TM1637 4-digit display working correctly
+  - Brightness control (0x0f maximum)
+  - Real-time sensor value display
+
+- **Hardware Optimization**
+  - Single servo configuration (GPIO 14)
+  - Corrected GPIO pin mappings
+  - Efficient memory usage (12% program storage)
+  - Stable WiFi connectivity
+
+#### 🔧 Backend Features
+- **IoT Telemetry API**
+  - POST /api/iot/telemetry endpoint
+  - Auto-device registration by MAC address
+  - Timestamp validation (ISO 8601 format)
+  - Sensor data persistence
+
+- **Device Management**
+  - GET /api/devices (list all user devices)
+  - GET /api/devices/{id} (device details)
+  - GET /api/devices/{id}/telemetry (paginated history)
+  - POST /api/devices/{id}/command (device control)
+
+- **Authentication & Security**
+  - JWT token-based authentication
+  - User registration and login
+  - Secure password handling
+  - Token expiration management
+
+#### 📚 Documentation
+- Comprehensive README with full API docs
+- Hardware setup guide with BOM
+- Quick start instructions
+- Troubleshooting guide
+- API endpoint documentation
+
+#### 🐛 Bug Fixes
+- Fixed ESP32 GPIO pin conflicts
+- Resolved serial communication issues with Arduino
+- Fixed timestamp format validation
+- Corrected display initialization
+
+---
+
 ## [0.1.0] - 2026-03-30
 
-### MVP Release: Complete IoT Smart Home Management Platform
+### MVP Release: Basic IoT Smart Home Management
 
 #### Added - Backend
-- **IoT Telemetry Ingestion API** (`POST /api/iot/telemetry`)
-  - Receives sensor readings (light level, noise level, motion) from ESP32 devices
-  - Auto-registers unregistered devices by MAC address
-  - Stores telemetry in time-series database (SensorEvent)
-  - Implements 3 automation rules engine
-  
-- **Automation Rules (Production Ready)**:
-  - **Rule 1**: Motion detected → FAN_ON (activate relay)
-  - **Rule 2**: Noise level > 700dB → ALERT (security notification)
-  - **Rule 3**: Light level < 300 lux → LED_ON (activate light)
-  
-- **Device Management APIs** (Read-only, Paginated):
-  - `GET /api/devices` - List all user-owned devices with online status
-  - `GET /api/devices/{id}` - Device details + last telemetry reading
-  - `GET /api/devices/{id}/telemetry?page=0&size=20` - Paginated sensor history (20 records/page)
-  - `GET /api/devices/{id}/actions?page=0&size=20` - Paginated action audit trail
-  
-- **Authentication & Security**:
+- **IoT Telemetry Ingestion API**
+  - Receives sensor readings from ESP32 devices
+  - Auto-registers unregistered devices
+  - Stores telemetry in time-series database
+
+- **Automation Rules Engine**
+  - Rule 1: Motion detected → FAN_ON
+  - Rule 2: Noise level > 700dB → ALERT
+  - Rule 3: Light level < 300 lux → LED_ON
+
+- **Device Management APIs**
+  - GET /api/devices
+  - GET /api/devices/{id}
+  - GET /api/devices/{id}/telemetry
+  - GET /api/devices/{id}/actions
+
+- **Authentication**
+  - User registration endpoint
+  - User login endpoint
+  - JWT token generation
+
+#### Added - Frontend
+- **Basic React Components**
+  - LoginForm component
+  - RegisterForm component
+  - DeviceDashboard component
+  - DeviceDetail component
+
+- **Basic Styling**
+  - Tailwind CSS integration
+  - Responsive design
+
+#### Added - Hardware
+- **ESP32 Firmware**
+  - WiFi connectivity
+  - NTP time synchronization
+  - Sensor reading
+  - REST API communication
+
+- **Arduino Uno**
+  - Serial receiver for alerts
+  - Alert terminal display
+
+---
+
+## Types of Changes
+
+- **Added** for new features
+- **Changed** for changes in existing functionality
+- **Deprecated** for soon-to-be removed features
+- **Removed** for now removed features
+- **Fixed** for any bug fixes
+- **Security** in case of vulnerabilities
   - JWT token-based authorization (extracted from SecurityContextHolder)
   - Owner-based access control (users can only access their own devices)
   - User service layer with password hashing
