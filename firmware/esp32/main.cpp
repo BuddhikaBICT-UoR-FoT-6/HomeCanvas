@@ -5,10 +5,10 @@
 // ==========================================
 // ⚠️ NETWORK CONFIGURATION ⚠️
 // ==========================================
-const char* ssid = "YOUR_WIFI_NAME";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "Buddhika";
+const char* password = "Buddhika123#";
 // Ensure your Spring Boot server is running on this IP!
-const String backendUrl = "http://YOUR_LAPTOP_IP:8080/api/iot/telemetry"; 
+const String backendUrl = "http://192.168.0.101:8080/api/iot/telemetry"; 
 
 // ==========================================
 // PIN DEFINITIONS

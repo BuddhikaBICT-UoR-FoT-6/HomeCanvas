@@ -1,153 +1,120 @@
-import { useCallback, useState } from 'react'; // Importing the useState hook from React to manage component state
-import { authAPI } from '../services/api'; // Importing the authAPI object from our API service, which
-//  contains methods for making authentication-related API calls
+import { useCallback, useState } from 'react';
+import { authAPI } from '../services/api';
 
-// Define the props for the LoginForm component. It expects a single prop, onLoginSuccess, which
-// is a function that will be called when the user successfully logs in. The function receives the
-// user data as an argument.
 interface LoginFormProps {
     onLoginSuccess: (user: any) => void;
-    onSwitchToRegister?: () => void; // Optional prop for switching to the registration form 
+    onSwitchToRegister?: () => void;
 }
 
-// The LoginForm component is a functional React component that renders a login form. It 
-// manages the state of the email, password, loading status, error messages, and success
-// messages using the useState hook. When the form is submitted, it makes an API call to
-// log the user in and handles the response accordingly, updating the state and localStorage
-// as needed.
-export default function LoginForm({onLoginSuccess, onSwitchToRegister}: LoginFormProps){
-    const [username, setUsername] = useState<string>(''); // State for storing the username input value
-    const [password, setPassword] = useState<string>(''); // State for storing the password input value
-    const [loading, setLoading] = useState<boolean>(false); // State for tracking whether the login process is currently in progress
-    const [toast, setToast] = useState({ message: '', type: '', visible: false }); // State for managing toast notifications (message, type, and visibility)
+// Professional Toast Notification Component
+const Toast = ({ message, type, visible }: { message: string; type: string; visible: boolean }) => {
+    if (!visible) return null;
+    
+    const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+    const icon = type === 'error' ? '❌' : '✅';
+    
+    return (
+        <div className={`fixed top-6 right-6 px-6 py-4 rounded-lg text-white font-semibold z-[60] shadow-xl flex items-center gap-3 animate-slideIn ${bgColor}`}>
+            <span className="text-xl">{icon}</span>
+            <span>{message}</span>
+        </div>
+    );
+};
+
+export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginFormProps) {
+    const [username, setUsername] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
+    const [toast, setToast] = useState({ message: '', type: '', visible: false });
 
     const showToast = useCallback((message: string, type: 'success' | 'error') => {
         setToast({ message, type, visible: true });
         const timer = setTimeout(() => {
             setToast(prev => ({ ...prev, visible: false }));
-        }, 3000);
+        }, 3500);
         return () => clearTimeout(timer);
     }, []);
 
-    // The handleSubmit function is called when the login form is submitted. It prevents the default
-    // form submission behavior, clears any previous error or success messages, sets the loading
-    // state to true, and then attempts to log the user in via the authAPI.login method. If the
-    // login is successful, it stores the user data in localStorage, calls the onLoginSuccess
-    // callback function, resets the form fields, and redirects the user to the dashboard after 2
-    // seconds. If an error occurs, it sets the error message. Finally, it always sets the loading
-    // state back to false.
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault(); // default behavior of a form submission is to reload the page. By calling
-        // e.preventDefault(), we prevent this default action from occurring, allowing us to handle the
-        // form submission with our custom logic instead.
-        setLoading(true); // Set the loading state to true to indicate that the login 
-        // process has started. This can be used to disable the login button and show a
-        // loading indicator while the API call is in progress.
+        e.preventDefault();
+        setLoading(true);
 
-        try{
-            // ensure that both username and password fields are filled out before making the API call
-            if(!username || !password){
-                showToast('Username and password are required', 'error');
+        try {
+            if (!username || !password) {
+                showToast('Please enter both username and password', 'error');
                 setLoading(false);
                 return;
-
             }
 
-            // Make the API call to log the user in using the authAPI.login method, passing the username and
-            // password as parameters. The response from the API call is stored in the response variable.
-            const response = await authAPI.login({username, password});
+            const response = await authAPI.login({ username, password });
 
-            // Check if the login was successful by looking at the success property in the response data.
-            // If the login was successful, we set a success message, store the user data in localStorage,
-            // call the onLoginSuccess callback function with the user data, reset the form fields, and
-            // redirect the user to the dashboard after a short delay.
-            if(response.data.success){
-                showToast('Login successful! Redirecting...', 'success');
-
-                // Store the user data in localStorage so that it can be accessed across different parts
-                // of the application. 
+            if (response.data.success) {
+                showToast(`Welcome back, ${response.data.data.username}!`, 'success');
+                localStorage.setItem('token', response.data.data.token);
                 localStorage.setItem('user', JSON.stringify(response.data.data));
                 localStorage.setItem('userId', response.data.data.id);
 
-                // Call the onLoginSuccess callback function, passing the user data as an argument.
-                // This allows the parent component to update its state and navigate the user to the
-                // dashboard or perform other actions upon successful login.
-                if(onLoginSuccess){
+                if (onLoginSuccess) {
                     onLoginSuccess(response.data.data);
                 }
 
-                setUsername(''); // Reset the username input field to an empty string after a successful login
-                setPassword(''); // Reset the password input field to an empty string after a successful login 
+                setUsername('');
+                setPassword('');
 
-                // Redirect to dashboard after 2 seconds to give the user time to see the success message before
-                // navigating away from the login page.
                 setTimeout(() => {
-                    window.location.href = '/dashboard';
+                    window.location.href = '/devices';
                 }, 2000);
             }
-
         } catch (err: any) {
-            // If an error occurs during the login process, we catch it and set an appropriate error message.
-            // We check if the error response contains a message and use that; otherwise, we set a generic error message.
-            showToast(err.response?.data?.message || 'Login failed. Please try again.', 'error');
+            const errorMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+            showToast(errorMsg, 'error');
         } finally {
-            // set the loading state back to false to indicate that the login process has completed, regardless of
-            // whether it was successful or if an error occurred.
             setLoading(false);
         }
     };
 
-    // The return statement contains the JSX that defines the structure and styling of the login form. It includes
-    // a header, input fields for username and password, error and success message displays, a submit button, and a 
-    // link to the registration page. The form is styled using Tailwind CSS classes to create a visually appealing
-    // and responsive design.
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            {/* Toast Notification */}
-            {toast.visible && (
-                <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-semibold z-[60] ${
-                    toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
-                }`}>
-                    {toast.message}
-                </div>
-            )}
+        <div 
+            className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-fixed"
+            style={{ backgroundImage: 'url(/background.jpg)' }}
+        >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
 
-            <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <Toast message={toast.message} type={toast.type} visible={toast.visible} />
+
+            <div className="relative z-10 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20">
                 {/* Header */}
-                <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
-                    HomeCanvas
-                </h1>
-                <p className="text-center text-gray-600 mb-8">Login to your account</p>
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
+                        🏠 HomeCanvas
+                    </h1>
+                    <p className="text-gray-600 text-sm">Smart Home Automation System</p>
+                </div>
 
                 {/* Login Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Username Input */}
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                            Username
-                        </label>
-                        <input 
-                            type="text" 
-                            id="username" 
-                            value={username} 
-                            onChange={(e) => setUsername(e.target.value)} 
-                            placeholder="your_username" 
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Enter your username"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition placeholder-gray-400"
                         />
                     </div>
 
                     {/* Password Input */}
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                            Password
-                        </label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                         <input
                             type="password"
-                            id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                            placeholder="Enter your password"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition placeholder-gray-400"
                         />
                     </div>
 
@@ -155,24 +122,35 @@ export default function LoginForm({onLoginSuccess, onSwitchToRegister}: LoginFor
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 disabled:hover:scale-100 shadow-lg disabled:shadow-none"
                     >
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                Signing in...
+                            </span>
+                        ) : (
+                            'Sign In'
+                        )}
                     </button>
                 </form>
 
                 {/* Footer link */}
-                <p className="text-center text-gray-600 mt-6">
-                    Don't have an account?{' '}
-                    <button
-                        onClick={onSwitchToRegister}
-                        className="text-blue-500 hover:underline font-bold bg-none border-none cursor-pointer"
-                    >
-                        Register here
-                    </button>
-                </p>
+                <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                    <p className="text-gray-600 text-sm">
+                        Don't have an account?{' '}
+                        <button
+                            onClick={onSwitchToRegister}
+                            className="text-blue-600 font-bold hover:text-blue-800 hover:underline bg-none border-none cursor-pointer transition"
+                        >
+                            Create one now
+                        </button>
+                    </p>
+                </div>
+            </div>
         </div>
-    </div>
     );
-        
 }
