@@ -1,5 +1,11 @@
 package com.homecanvas.auth.dto;
 
+// This DTO is used to capture the user registration data from the client. It includes fields 
+// for username, password, confirm password, and role. The confirmPassword field is used to 
+// ensure that the user has entered their desired password correctly by having them enter it 
+// twice. The role field allows for assigning a specific role to the user during registration, 
+// which can be used for authorization purposes later on. This DTO will be used in the registration 
+// endpoint of the authentication controller to create new user accounts.
 public class UserRegistrationDTO {
     private String username;
     private String password;

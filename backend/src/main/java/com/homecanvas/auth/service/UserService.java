@@ -7,6 +7,7 @@ import com.homecanvas.auth.dto.UserResponseDTO;
 import com.homecanvas.auth.exception.BadRequestException;
 import com.homecanvas.auth.model.User;
 import com.homecanvas.auth.repository.UserRepository;
+import com.homecanvas.auth.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired; // used for dependency injection
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service; // marks this class as a service component in the Spring context 
@@ -23,6 +24,9 @@ public class UserService {
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     // Method to register a new user takes a UserRegistrationDTO as input and returns a 
     // UserResponseDTO as output 
@@ -43,7 +47,9 @@ public class UserService {
 
         // Save the user to the database and convert the saved user to a UserResponseDTO before returning it 
         User savedUser = userRepository.save(user); 
-        return convertToResponseDTO(savedUser);
+        UserResponseDTO responseDTO = convertToResponseDTO(savedUser);
+        responseDTO.setToken(jwtUtil.generateToken(savedUser.getUsername(), savedUser.getId(), savedUser.getRole()));
+        return responseDTO;
     }
 
     // Method to authenticate a user takes a UserLoginDTO as input and returns a UserResponseDTO 
@@ -60,12 +66,16 @@ public class UserService {
             throw new BadRequestException("Invalid username or password");
         }
 
-        return convertToResponseDTO(optionalUser.get());
+        User user = optionalUser.get();
+        UserResponseDTO responseDTO = convertToResponseDTO(user);
+        responseDTO.setToken(jwtUtil.generateToken(user.getUsername(), user.getId(), user.getRole()));
+        return responseDTO;
     }
 
     // Method to retrieve a user by their ID takes an Integer userId as input and returns 
     // a UserResponseDTO if the user is found, otherwise throws a BadRequestException with a "User not found" message
     public UserResponseDTO getUserById(Integer userId) {
+        if (userId == null) throw new BadRequestException("User ID is required");
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("User not found"));
         return convertToResponseDTO(user);
