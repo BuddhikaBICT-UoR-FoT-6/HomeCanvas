@@ -15,5 +15,6 @@ public class SensorEventDTO {
     private Integer lightLevel;
     private Integer noiseLevel;
     private Boolean motionDetected;
+    private Integer ventAngle;
 
 }

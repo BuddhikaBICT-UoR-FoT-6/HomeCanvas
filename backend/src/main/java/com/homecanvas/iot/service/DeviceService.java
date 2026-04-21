@@ -204,7 +204,8 @@ public class DeviceService {
             event.getTimestamp(),
             event.getLightLevel(),
             event.getNoiseLevel(),
-            event.getMotionDetected()
+            event.getMotionDetected(),
+            event.getVentAngle()
         );
     }
 
@@ -233,6 +234,9 @@ public class DeviceService {
             return "Offline";
         }
     }
+
+    @Autowired
+    private IotService iotService;
 
     // Send a control command to a specific device. The command contains desired state for
     // fanOn, ledOn, displayText, and servoAngle. This method stores the command for the 
@@ -281,8 +285,25 @@ public class DeviceService {
         
         deviceRepository.save(device);
 
+        // --- NEW: Push command via MQTT for instant response ---
+        iotService.publishCommand(device.getMacAddress(), command);
+
         // Return the same command confirming receipt
         return command;
+    }
+
+    // Update the device name
+    public void updateDeviceName(Long id, String newName) {
+        Device device = deviceRepository.findById(id).orElse(null);
+        if (device != null) {
+            device.setName(newName);
+            deviceRepository.save(device);
+        }
+    }
+
+    // Delete a device
+    public void deleteDevice(Long id) {
+        deviceRepository.deleteById(id);
     }
 
 }

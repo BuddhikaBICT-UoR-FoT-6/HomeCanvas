@@ -7,12 +7,12 @@ import com.homecanvas.iot.dto.TelemetryPayloadDTO;
 import com.homecanvas.iot.dto.DeviceCommandDTO;
 import com.homecanvas.iot.model.Device;
 import com.homecanvas.iot.model.SensorEvent;
-import com.homecanvas.iot.model.ActionLog;
 import com.homecanvas.iot.repository.DeviceRepository;
 import com.homecanvas.iot.repository.SensorEventRepository;
-import com.homecanvas.iot.repository.ActionLogRepository;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.MessageBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional
@@ -25,7 +25,15 @@ public class IotService {
     private SensorEventRepository sensorEventRepository;
 
     @Autowired
-    private ActionLogRepository actionLogRepository;
+    private com.homecanvas.iot.repository.ActionLogRepository actionLogRepository;
+
+    @Autowired
+    private MessageChannel mqttOutboundChannel;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private static final String COMMAND_TOPIC_PREFIX = "homecanvas/commands/";
 
     public DeviceCommandDTO processTelemetry(TelemetryPayloadDTO payload) {
         Device device = deviceRepository.findByMacAddress(payload.getMacAddress())
@@ -43,40 +51,26 @@ public class IotService {
         SensorEvent sensorEvent = new SensorEvent();
         sensorEvent.setDevice(device);
         // Use payload timestamp if provided, otherwise server time
-        sensorEvent.setTimestamp(payload.getTimestamp() != null ? payload.getTimestamp() : LocalDateTime.now());
+        sensorEvent.setTimestamp(payload.getParsedTimestamp());
         sensorEvent.setLightLevel(payload.getLightLevel());
         sensorEvent.setNoiseLevel(payload.getNoiseLevel());
         sensorEvent.setMotionDetected(payload.getMotionDetected());
+        sensorEvent.setVentAngle(payload.getVentAngle());
         sensorEvent.setCreatedAt(LocalDateTime.now());
         sensorEventRepository.save(sensorEvent);
 
-        Device freshDevice = deviceRepository.findById(device.getId()).orElse(device);
+        Long deviceId = device.getId();
+        if (deviceId == null) return new DeviceCommandDTO(); // Should not happen after save
+        Device freshDevice = deviceRepository.findById(deviceId).orElse(device);
         
         // --- LOGIC: MANUAL OVERRIDE (STICKY) ---
-        // If a field is not null in freshDevice, it means a Dashboard Toggle is active.
-        // Automation rules are blocked until the toggle is removed (set back to null).
+        // We only send these if they are NOT NULL (manually set in DB).
+        // Automation is handled LOCALLY by the ESP32 to prevent conflicts.
         
         Boolean fanOn = freshDevice.getLastCommandFanOn();
         Boolean ledOn = freshDevice.getLastCommandLedOn();
         String lcdMessage = freshDevice.getLastCommandLcdMessage();
         Integer servoAngle = freshDevice.getLastCommandServoAngle();
-
-        boolean isLowLight = (payload.getLightLevel() != null && payload.getLightLevel() < 2000);
-
-        // 1. Fan Automation (only if no manual command)
-        if (fanOn == null) {
-            fanOn = (payload.getMotionDetected() != null && payload.getMotionDetected());
-        }
-
-        // 2. LED Automation (only if no manual command)
-        if (ledOn == null) {
-            ledOn = isLowLight;
-        }
-
-        // 3. Display Automation (only if no manual command)
-        if (lcdMessage == null && payload.getNoiseLevel() != null && payload.getNoiseLevel() > 700) {
-            lcdMessage = "ALRT";
-        }
 
         // Cleanup fire-once message (the message itself is temporary)
         if (freshDevice.getLastCommandLcdMessage() != null) {
@@ -106,5 +100,22 @@ public class IotService {
         }
 
         return cmd;
+    }
+
+    public void publishCommand(String macAddress, DeviceCommandDTO command) {
+        try {
+            String topic = COMMAND_TOPIC_PREFIX + macAddress;
+            String json = objectMapper.writeValueAsString(command);
+            
+            if (json == null) return;
+            
+            mqttOutboundChannel.send(MessageBuilder.withPayload(json)
+                    .setHeader("mqtt_topic", topic)
+                    .build());
+            
+            System.out.println("[MQTT] Published command to " + topic);
+        } catch (Exception e) {
+            System.err.println("[MQTT] Error publishing command: " + e.getMessage());
+        }
     }
 }

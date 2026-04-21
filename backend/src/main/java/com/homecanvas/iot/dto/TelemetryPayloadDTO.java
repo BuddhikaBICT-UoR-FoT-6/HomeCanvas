@@ -17,11 +17,22 @@ public class TelemetryPayloadDTO {
     @NotBlank(message = "MAC address is required")
     private String macAddress;
 
-    // The timestamp of when the telemetry data was recorded on the device. This is important for time-series analysis and correlating events.
-    @NotNull(message = "Timestamp is required")
-    private LocalDateTime timestamp = LocalDateTime.now(); // Default to now if not provided
+    // Accept timestamp as a String to avoid Jackson deserialization errors if JavaTimeModule is missing
+    private String timestamp;
+
+    public LocalDateTime getParsedTimestamp() {
+        if (timestamp != null && !timestamp.trim().isEmpty()) {
+            try {
+                return LocalDateTime.parse(timestamp);
+            } catch (Exception e) {
+                return LocalDateTime.now();
+            }
+        }
+        return LocalDateTime.now();
+    }
 
     private Integer lightLevel;      // 0-1023 from LDR sensor
     private Integer noiseLevel;      // 0-1023 from sound sensor
     private Boolean motionDetected;  // true/false from PIR motion sensor
+    private Integer ventAngle;       // 0, 45, or 90
 }

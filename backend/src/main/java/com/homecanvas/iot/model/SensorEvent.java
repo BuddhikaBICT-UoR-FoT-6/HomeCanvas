@@ -36,6 +36,9 @@ public class SensorEvent {
     @Column(name = "motion_detected")
     private Boolean motionDetected; // Motion detected status, can be null if not applicable
 
+    @Column(name = "vent_angle")
+    private Integer ventAngle; // Servo angle (0, 45, or 90)
+
     @Column(name = "created_at")
     private LocalDateTime createdAt; // Timestamp when the sensor event was created
 
