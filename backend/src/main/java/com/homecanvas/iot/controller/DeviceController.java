@@ -130,5 +130,43 @@ public class DeviceController {
         return deviceService.sendCommand(id, user, command);
     }
 
-    
+    // Update a device's name.
+    @PutMapping("/{id}")
+    public org.springframework.http.ResponseEntity<?> updateDevice(
+        @PathVariable Long id,
+        @RequestBody java.util.Map<String, String> payload
+    ) {
+        Optional<User> userOptional = resolveAuthenticatedUser();
+        User user = userOptional.orElse(null);
+        
+        // Use deviceService to get device
+        com.homecanvas.iot.dto.DeviceDetailDTO device = deviceService.getDeviceDetail(id, user);
+        if (device == null) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                .body(java.util.Map.of("success", false, "message", "Device not found or not owned by user"));
+        }
+        
+        String newName = payload.get("name");
+        if (newName != null && !newName.trim().isEmpty()) {
+            deviceService.updateDeviceName(id, newName);
+            return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Device updated successfully"));
+        }
+        return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("success", false, "message", "Name is required"));
+    }
+
+    // Delete a device.
+    @DeleteMapping("/{id}")
+    public org.springframework.http.ResponseEntity<?> deleteDevice(@PathVariable Long id) {
+        Optional<User> userOptional = resolveAuthenticatedUser();
+        User user = userOptional.orElse(null);
+
+        com.homecanvas.iot.dto.DeviceDetailDTO device = deviceService.getDeviceDetail(id, user);
+        if (device == null) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                .body(java.util.Map.of("success", false, "message", "Device not found or not owned by user"));
+        }
+
+        deviceService.deleteDevice(id);
+        return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Device deleted successfully"));
+    }
 }
