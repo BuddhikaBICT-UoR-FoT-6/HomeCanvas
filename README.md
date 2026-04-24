@@ -105,6 +105,7 @@ HomeCanvas is a complete smart home automation system that bridges IoT edge devi
 |-------|-----------|---------|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS | Web UI |
 | **Backend** | Spring Boot 3.x, Spring Data JPA, PostgreSQL | API Server |
+| **Messaging** | MQTT (Mosquitto), UDP Discovery | IoT Comm |
 | **Authentication** | JWT (JSON Web Tokens) | Secure Access |
 | **IoT** | ESP32, Arduino Uno, TM1637 Display | Hardware |
 | **Communication** | HTTP REST, Serial UART | Data Transfer |
@@ -157,6 +158,17 @@ npm run dev
 ```
 
 Frontend runs on: `http://localhost:5173`
+
+### MQTT Broker Setup (Mosquitto)
+
+The ESP32 and Backend communicate via MQTT. You can run a local broker using the provided configuration:
+
+```bash
+# Start Mosquitto with project configuration
+mosquitto -c mosquitto.conf -v
+```
+
+Ensure Mosquitto is installed and available in your PATH.
 
 ### ESP32 Setup
 
@@ -347,7 +359,8 @@ Content-Type: application/json
   "timestamp": "2026-04-12T15:30:45",
   "lightLevel": 456,
   "noiseLevel": 125,
-  "motionDetected": false
+  "motionDetected": false,
+  "ventAngle": 45
 }
 
 Response:
@@ -577,8 +590,8 @@ For issues, questions, or suggestions:
 
 ---
 
-**Last Updated:** April 12, 2026
-**Version:** 1.0.0
+**Last Updated:** April 24, 2026
+**Version:** 1.1.0
 
 ## Getting Started
 
@@ -702,6 +715,7 @@ VITE_API_URL=http://localhost:8080
 - `light_level`
 - `noise_level`
 - `motion_detected`
+- `vent_angle`
 
 ### Rules
 - `id` (PK)

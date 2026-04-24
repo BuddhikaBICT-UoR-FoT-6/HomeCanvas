@@ -5,6 +5,26 @@ All notable changes to HomeCanvas project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-24
+
+### 🛠️ System Stabilization & UI Refinement
+
+#### ✨ Frontend Improvements
+- **Vibrant PIR Status**: Enhanced the "Occupancy Status" card with a vibrant yellow/amber background when motion is detected for immediate visual feedback.
+- **Sensor Threshold Sync**: Updated `LIGHT_THRESHOLD` from 2000 to 350 to align with real-world LDR sensor behavior and ESP32 firmware logic.
+- **Enhanced Sound Messaging**: Implemented detailed security alerts for noise levels, differentiating between "flies near window", "something hitting the window", and "suspicious activity near window".
+
+#### 🔧 Backend Stabilization
+- **Schema-DTO Alignment**: Synchronized `SensorEventDTO` and `DeviceService` with the updated database schema, adding the missing `ventAngle` field to resolve 500 Internal Server Errors.
+- **MQTT Command Ingestion**: Verified and stabilized the MQTT command publishing flow for device control.
+- **Improved Persistence**: Confirmed correct JPA persistence for extended telemetry payloads.
+
+#### 🚀 Infrastructure & Setup
+- **MQTT Configuration**: Added a standard `mosquitto.conf` to the project root for simplified broker setup.
+- **Compilation Fix**: Resolved a persistent "Unresolved compilation problem" in the production binary by ensuring clean Maven builds.
+
+---
+
 ## [1.0.0] - 2026-04-12
 
 ### 🎉 Production Release: Complete Smart Home Automation Platform
