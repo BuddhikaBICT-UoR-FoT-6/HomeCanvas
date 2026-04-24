@@ -41,6 +41,8 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
     const [autoRefresh, setAutoRefresh] = useState(true);
     // Per-device control states keyed by device id
     const [controls, setControls] = useState<Record<number, DeviceControls>>({});
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editName, setEditName] = useState('');
     const navigate = useNavigate();
 
     // Fetch devices when the component mounts or when autoRefresh changes. 
@@ -126,15 +128,38 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
         }
     };
 
+    const handleRename = async (e: React.MouseEvent, deviceId: number) => {
+        e.stopPropagation();
+        try {
+            await deviceAPI.updateDevice(deviceId, { name: editName });
+            setEditingId(null);
+            fetchDevices();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to rename device');
+        }
+    };
+
+    const handleDelete = async (e: React.MouseEvent, deviceId: number) => {
+        e.stopPropagation();
+        if (!window.confirm('Are you sure you want to delete this device?')) return;
+        try {
+            await deviceAPI.deleteDevice(deviceId);
+            fetchDevices();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to delete device');
+        }
+    };
+
     // Render loading, error, or the list of devices based on the current state. 
-    if (loading) return <div className="hc-page p-4 text-center text-lg">Loading devices...</div>;
-    if (error) return <div className="hc-page p-4 text-center text-red-500">Error: {error}</div>;
+    if (loading) return <div className="hc-page min-h-screen p-4 text-center text-lg text-slate-700 dark:text-slate-300">Loading devices...</div>;
+    if (error) return <div className="hc-page min-h-screen p-4 text-center text-red-500 dark:text-red-400">Error: {error}</div>;
 
     return (
-        <div className="hc-page container mx-auto p-4 pt-16">
+        <div className="hc-page min-h-screen bg-hc-bg text-hc-text transition-colors duration-300">
+            <div className="container mx-auto p-4 pt-16">
             {/* Header row: title + Live Updates + Theme Toggle inline */}
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-                <h1 className="text-4xl font-bold">Smart Home Devices</h1>
+                <h1 className="text-4xl font-bold text-hc-text">Smart Home Devices</h1>
                 <div className="flex items-center gap-3">
                     {/* Live Updates toggle */}
                     <label className="hc-glass flex items-center gap-2 cursor-pointer rounded-xl px-4 py-2 shadow">
@@ -171,8 +196,37 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                     >
                         {/* Device Header */}
                         <div className="flex justify-between items-start mb-4">
-                            <h3 className="font-bold text-xl">{device.name}</h3>
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            {editingId === device.id ? (
+                                <div className="flex items-center gap-2 w-full mr-2" onClick={e => e.stopPropagation()}>
+                                    <input 
+                                        autoFocus
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 outline-none font-bold focus:ring-2 focus:ring-cyan-500"
+                                    />
+                                    <button onClick={(e) => handleRename(e, device.id)} className="bg-emerald-500 text-white rounded p-1 text-xs px-2 hover:bg-emerald-600 transition">Save</button>
+                                    <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded p-1 text-xs px-2 hover:bg-slate-400 dark:hover:bg-slate-600 transition">Cancel</button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 group relative">
+                                    <h3 className="font-bold text-xl text-hc-text">{device.name}</h3>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 absolute left-full ml-2">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setEditingId(device.id); setEditName(device.name); }}
+                                            className="text-slate-500 dark:text-slate-400 hover:text-cyan-500 transition" title="Rename"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button 
+                                            onClick={(e) => handleDelete(e, device.id)}
+                                            className="text-slate-500 dark:text-slate-400 hover:text-rose-500 transition" title="Delete"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${
                                 isOnline
                                     ? 'bg-emerald-500/20 text-emerald-400' 
                                     : 'bg-rose-500/20 text-rose-400'
@@ -181,24 +235,24 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                             </span>
                         </div>
 
-                        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-                            <span className="font-mono">{device.macAddress}</span>
+                        <p className="mb-4 text-sm text-hc-text-soft">
+                            <span className="font-mono text-hc-text">{device.macAddress}</span>
                         </p>
 
                         {/* Sensor Indicators */}
                         {device.lastTelemetry && (
                             <div className="grid grid-cols-3 gap-2 mb-4">
-                                <div className="rounded bg-amber-500/15 p-2 text-center">
-                                    <p className="text-xs text-slate-500 dark:text-slate-300">Light</p>
+                                <div className="rounded bg-amber-500/15 dark:bg-amber-900/20 p-2 text-center">
+                                    <p className="text-xs text-slate-600 dark:text-slate-300">Light</p>
                                     <p className="text-sm font-bold text-yellow-600">{device.lastTelemetry.lightLevel}</p>
                                 </div>
-                                <div className="rounded bg-blue-500/15 p-2 text-center">
-                                    <p className="text-xs text-slate-500 dark:text-slate-300">Noise</p>
+                                <div className="rounded bg-blue-500/15 dark:bg-blue-900/20 p-2 text-center">
+                                    <p className="text-xs text-slate-600 dark:text-slate-300">Noise</p>
                                     <p className="text-sm font-bold text-blue-500">{device.lastTelemetry.noiseLevel}</p>
                                 </div>
                                 <div className={`rounded p-2 text-center ${device.lastTelemetry.motionDetected ? 'bg-rose-500/15' : 'bg-slate-500/15'}`}>
-                                    <p className="text-xs text-slate-500 dark:text-slate-300">Motion</p>
-                                    <p className={`text-sm font-bold ${device.lastTelemetry.motionDetected ? 'text-red-600' : 'text-gray-600'}`}>
+                                    <p className="text-xs text-hc-text-soft">Motion</p>
+                                    <p className={`text-sm font-bold ${device.lastTelemetry.motionDetected ? 'text-red-600' : 'text-hc-text-soft'}`}>
                                         {device.lastTelemetry.motionDetected ? 'Yes' : 'No'}
                                     </p>
                                 </div>
@@ -210,7 +264,7 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                             className="mt-3 pt-3 border-t border-slate-300/30 dark:border-slate-600/30"
                             onClick={e => e.stopPropagation()} // Prevent card navigation when interacting with controls
                         >
-                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Quick Controls</p>
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Quick Controls</p>
 
                             {/* LED + Servo buttons — inline */}
                             <div className="flex gap-2 mb-3 flex-wrap">
@@ -259,7 +313,7 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                         }}
                                         onClick={e => e.stopPropagation()}
                                         placeholder="0000"
-                                        className="w-full bg-transparent text-sm font-mono font-bold text-purple-600 dark:text-purple-400 outline-none placeholder:text-slate-400"
+                                        className="w-full bg-slate-100 dark:bg-slate-900 text-sm font-mono font-bold text-purple-600 dark:text-purple-400 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600 px-2 py-1 rounded border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-400"
                                     />
                                 </div>
                                 <button
@@ -286,6 +340,7 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                     <p className="text-slate-600 dark:text-slate-400">Register a device to get started</p>
                 </div>
             )}
+            </div>
         </div>
     );
 }

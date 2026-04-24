@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import LoginForm from './components/LoginForm'
 import RegisterForm from './components/RegisterForm'
 import DeviceDashboard from './pages/DeviceDashboard'
 import DeviceDetail from './pages/DeviceDetail'
+import Analytics from './pages/Analytics'
+import UserManagement from './pages/UserManagement'
+import MainLayout from './components/MainLayout'
 import './App.css'
 
 // AppRoutes renders the page routes and passes theme props to the dashboard
 function AppRoutes({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onToggleTheme: () => void }) {
   const isAuthenticated = !!localStorage.getItem('token')
   const navigate = useNavigate()
-  const location = useLocation()
-
-  // Only show the floating theme button on non-dashboard pages
-  const showFloatingTheme = !location.pathname.startsWith('/devices')
 
   const handleLoginSuccess = () => {
     navigate('/devices')
@@ -23,21 +22,9 @@ function AppRoutes({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onToggle
     navigate('/login')
   }
 
+  // We only show the custom layout for authenticated routes. Unauthenticated routes are full page.
   return (
     <>
-      {/* Floating theme toggle — only on login / register pages */}
-      {showFloatingTheme && (
-        <div className="fixed top-4 right-4 z-[70] flex gap-2 items-center">
-          <button
-            onClick={onToggleTheme}
-            className="rounded-full border border-slate-300/70 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg backdrop-blur transition hover:scale-105 hover:bg-white dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-100 dark:hover:bg-slate-900"
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-          </button>
-        </div>
-      )}
-
       <Routes>
         <Route 
           path="/login" 
@@ -47,18 +34,37 @@ function AppRoutes({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onToggle
           path="/register" 
           element={<RegisterForm onRegisterSuccess={handleRegisterSuccess} onSwitchToLogin={() => navigate('/login')} />} 
         />
+        
+        {/* Authenticated Routes wrapped in MainLayout */}
         <Route 
           path="/devices" 
           element={
             isAuthenticated 
-              ? <DeviceDashboard theme={theme} onToggleTheme={onToggleTheme} /> 
+              ? <MainLayout theme={theme} onToggleTheme={onToggleTheme}><DeviceDashboard /></MainLayout> 
               : <Navigate to="/login" />
           } 
         />
         <Route 
           path="/devices/:id" 
-          element={isAuthenticated ? <DeviceDetail /> : <Navigate to="/login" />} 
+          element={isAuthenticated ? <MainLayout theme={theme} onToggleTheme={onToggleTheme}><DeviceDetail /></MainLayout> : <Navigate to="/login" />} 
         />
+        <Route 
+          path="/analytics" 
+          element={
+            isAuthenticated 
+              ? <MainLayout theme={theme} onToggleTheme={onToggleTheme}><Analytics /></MainLayout> 
+              : <Navigate to="/login" />
+          } 
+        />
+        <Route 
+          path="/users" 
+          element={
+            isAuthenticated 
+              ? <MainLayout theme={theme} onToggleTheme={onToggleTheme}><UserManagement /></MainLayout> 
+              : <Navigate to="/login" />
+          } 
+        />
+        
         <Route path="/" element={<Navigate to={isAuthenticated ? '/devices' : '/login'} />} />
       </Routes>
     </>
