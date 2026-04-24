@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap');
 
+@theme {
+  --color-hc-bg: var(--hc-bg);
+  --color-hc-surface: var(--hc-surface);
+  --color-hc-surface-strong: var(--hc-surface-strong);
+  --color-hc-border: var(--hc-border);
+  --color-hc-text: var(--hc-text);
+  --color-hc-text-soft: var(--hc-text-soft);
+  --color-hc-accent: var(--hc-accent);
+  --color-hc-accent-2: var(--hc-accent-2);
+}
+
 :root {
   --hc-bg: radial-gradient(1200px 700px at 5% 0%, #f6f9ff 0%, transparent 60%),
     radial-gradient(900px 600px at 95% 100%, #e6fff3 0%, transparent 55%),
@@ -37,6 +48,12 @@ body {
   font-family: 'Manrope', sans-serif;
   background: var(--hc-bg);
   color: var(--hc-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark body {
+  background: var(--hc-bg);
+  color: var(--hc-text);
 }
 
 h1,
@@ -45,6 +62,7 @@ h3,
 h4 {
   font-family: 'Space Grotesk', sans-serif;
   letter-spacing: -0.015em;
+  color: var(--hc-text);
 }
 
 @keyframes slideIn {
@@ -81,4 +99,17 @@ h4 {
     border: 1px solid var(--hc-border);
     @apply rounded-2xl shadow-xl;
   }
+
+  .hc-fan-spin {
+    animation: spin 2s linear infinite;
+  }
+
+  .hc-security-glow {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

@@ -57,6 +57,24 @@ export const deviceAPI = {
     // Send device commands to control hardware
     sendCommand: (deviceId: number, command: any) => 
         API.post(`/devices/${deviceId}/command`, command), // Send control command (servo, LED, etc.)
+    // Update a device
+    updateDevice: (id: number, data: any) => API.put(`/devices/${id}`, data),
+    // Delete a device
+    deleteDevice: (id: number) => API.delete(`/devices/${id}`),
+};
+
+// ------------------------------------------------------------------------
+// HomeCanvas: User Management API calls
+export const userAPI = {
+    getUsers: () => API.get('/users'),
+    deleteUser: (id: number) => API.delete(`/users/${id}`),
+    updateUserRole: (id: number, role: string) => API.put(`/users/${id}/role`, { role }),
+};
+
+// ------------------------------------------------------------------------
+// HomeCanvas: Analytics API calls
+export const analyticsAPI = {
+    getSummary: (range: string = '24h') => API.get('/analytics/summary', { params: { range } }),
 };
 
 // Export the API instance for direct access if needed
