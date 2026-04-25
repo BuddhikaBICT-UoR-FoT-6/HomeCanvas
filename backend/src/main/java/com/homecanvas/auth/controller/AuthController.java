@@ -15,7 +15,6 @@ import java.util.Map;
 
 @RestController // REST controller for authentication-related endpoints 
 @RequestMapping("/api/auth") // Base path for all auth-related endpoints
-@CrossOrigin(origins = "http://localhost:5173") // Allow CORS requests from the frontend running on localhost:5173
 public class AuthController {
     // this class handles authentication-related HTTP requests such as registration and login 
 
@@ -62,6 +61,25 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
         }
     }   
+
+    // Special endpoint for "Try Demo" functionality
+    // This allows users to experience the system with virtual hardware
+    @PostMapping("/demo")
+    public ResponseEntity<?> demoLogin() {
+        try {
+            UserResponseDTO user = userService.loginAsGuest();
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Demo login successful");
+            response.put("data", user);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
 
     // Handle request to get user information by ID if the user is found, return a 200 OK response 
     // with the user data in the body; if the user is not found, return a 404 Not Found response with 

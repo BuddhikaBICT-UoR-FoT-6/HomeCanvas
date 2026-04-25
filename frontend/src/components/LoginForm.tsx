@@ -72,6 +72,29 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginF
         }
     };
 
+    const handleDemoLogin = async () => {
+        setLoading(true);
+        try {
+            const response = await authAPI.demoLogin();
+            if (response.data.success) {
+                localStorage.setItem('token', response.data.data.token);
+                localStorage.setItem('user', JSON.stringify(response.data.data));
+                localStorage.setItem('userId', response.data.data.id);
+                
+                showToast(`🚀 Guest Access Granted! Setting up your virtual home...`, 'success');
+                
+                setTimeout(() => {
+                    if (onLoginSuccess) {
+                        onLoginSuccess(response.data.data);
+                    }
+                }, 1200);
+            }
+        } catch (err: any) {
+            showToast('❌ Failed to start demo. Please try again.', 'error');
+            setLoading(false);
+        }
+    };
+
     return (
         <div 
             className="hc-page relative flex min-h-screen items-center justify-center bg-cover bg-center bg-fixed p-4"
@@ -144,10 +167,19 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginF
 
                     <button
                         type="button"
-                        onClick={() => window.location.href = '/simulation'}
-                        className="w-full rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 font-bold text-cyan-400 shadow-lg transition hover:scale-105 hover:bg-cyan-500/20"
+                        onClick={handleDemoLogin}
+                        disabled={loading}
+                        className="w-full rounded-lg border-2 border-cyan-500/50 bg-cyan-500/10 px-4 py-3 font-bold text-cyan-400 shadow-lg transition hover:scale-105 hover:bg-cyan-500/20 disabled:opacity-50"
                     >
-                        🚀 Try Simulation Mode
+                        ✨ Special Guest Access (Demo)
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => window.location.href = '/simulation'}
+                        className="w-full text-xs font-bold text-slate-500 hover:text-slate-400 transition-colors"
+                    >
+                        Try Basic Simulation Mode
                     </button>
                 </form>
 

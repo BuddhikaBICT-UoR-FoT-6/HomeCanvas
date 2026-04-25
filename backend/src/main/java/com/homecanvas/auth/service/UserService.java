@@ -28,6 +28,9 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private com.homecanvas.iot.service.DeviceProvisioningService deviceProvisioningService;
+
     // Method to register a new user takes a UserRegistrationDTO as input and returns a 
     // UserResponseDTO as output 
     public UserResponseDTO register(UserRegistrationDTO registrationDTO) {
@@ -69,6 +72,30 @@ public class UserService {
         User user = optionalUser.get();
         UserResponseDTO responseDTO = convertToResponseDTO(user);
         responseDTO.setToken(jwtUtil.generateToken(user.getUsername(), user.getId(), user.getRole()));
+        return responseDTO;
+    }
+
+    // Method to login as a guest (Special User)
+    // This creates a temporary guest account if one doesn't exist for the session,
+    // or returns an existing one. It also ensures the guest has virtual devices.
+    @org.springframework.transaction.annotation.Transactional
+    public UserResponseDTO loginAsGuest() {
+        String guestUsername = "guest_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        
+        User guest = new User();
+        guest.setUsername(guestUsername);
+        guest.setPasswordHash(bCryptPasswordEncoder.encode("guest_password"));
+        guest.setRole("GUEST");
+        
+        User savedGuest = userRepository.save(guest);
+        
+        // Provision virtual devices for the guest
+        deviceProvisioningService.provisionVirtualHome(savedGuest);
+        
+        // Return response with token
+        UserResponseDTO responseDTO = convertToResponseDTO(savedGuest);
+        responseDTO.setToken(jwtUtil.generateToken(savedGuest.getUsername(), savedGuest.getId(), savedGuest.getRole()));
+        
         return responseDTO;
     }
 
