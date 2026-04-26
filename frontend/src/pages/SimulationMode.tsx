@@ -70,8 +70,9 @@ export default function SimulationMode() {
     const [rooms, setRooms] = useState({
         living: { id: 'living', name: 'Living Room', occupied: false, light: false, fan: false },
         bedroom: { id: 'bedroom', name: 'Master Bedroom', occupied: false, light: false, fan: false },
-        kitchen: { id: 'kitchen', name: 'Kitchen', occupied: false, light: false, fan: false },
-        bathroom: { id: 'bathroom', name: 'Bathroom', occupied: false, light: false, fan: false },
+        kitchen: { id: 'kitchen', name: 'Kitchen', occupied: false, light: false, fan: false, aiSpecialty: 'fire_detection' },
+        entrance: { id: 'entrance', name: 'Main Entrance', occupied: false, light: false, fan: false, aiSpecialty: 'guest_detection' },
+        nursery: { id: 'nursery', name: 'Baby Room', occupied: false, light: false, fan: false, aiSpecialty: 'movement_monitoring' },
     });
     
     const [logs, setLogs] = useState<{time: string, msg: string, type: string}[]>([]);
