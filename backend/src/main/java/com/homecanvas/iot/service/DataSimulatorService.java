@@ -11,6 +11,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.homecanvas.auth.repository.UserRepository;
+import com.homecanvas.auth.model.User;
+import com.homecanvas.iot.model.Device;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import jakarta.annotation.PostConstruct;
 
 /**
  * SECRET DEBUG MODE: Data Simulator Service
@@ -58,6 +64,20 @@ public class DataSimulatorService {
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
     private final AtomicBoolean isSimulating = new AtomicBoolean(false);
     private final List<SimulationCallback> callbacks = Collections.synchronizedList(new ArrayList<>());
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    @Lazy
+    private IotService iotService;
+
+    @PostConstruct
+    public void init() {
+        // Automatically start simulation loop on startup
+        // It will only generate data if GUEST users exist
+        startSimulation();
+    }
 
     // Simulation state tracking
     private int lastSoundLevel = 1000;
@@ -148,40 +168,45 @@ public class DataSimulatorService {
         try {
             LocalDateTime now = LocalDateTime.now();
             
-            // Determine realistic PIR probability based on time of day
-            boolean motionDetected = simulateMotionDetection(now);
-            
-            // Determine realistic sound level
-            int soundLevel = simulateSoundLevel(now, motionDetected);
-            
-            // Determine realistic light level
-            int lightLevel = simulateLightLevel(now);
+            // Find all guest users
+            List<User> guests = userRepository.findByRole("GUEST");
+            if (guests.isEmpty()) {
+                return;
+            }
 
-            OccupancyTelemetryDTO telemetry = OccupancyTelemetryDTO.builder()
-                .pir(motionDetected)
-                .sound(soundLevel)
-                .light(lightLevel)
-                .timestamp(now.toString())
-                .build();
+            for (User guest : guests) {
+                if (guest.getDevices() == null) continue;
+                
+                for (Device device : guest.getDevices()) {
+                    // Determine realistic sensor values for this specific device
+                    boolean motionDetected = simulateMotionDetection(now);
+                    int soundLevel = simulateSoundLevel(now, motionDetected);
+                    int lightLevel = simulateLightLevel(now);
 
-            // Notify all callbacks
-            for (SimulationCallback callback : callbacks) {
-                try {
-                    callback.onSimulatedData(telemetry);
-                } catch (Exception e) {
-                    log.error("[SIMULATOR] Callback error: {}", e.getMessage());
+                    OccupancyTelemetryDTO telemetry = OccupancyTelemetryDTO.builder()
+                        .macAddress(device.getMacAddress())
+                        .pir(motionDetected)
+                        .sound(soundLevel)
+                        .light(lightLevel)
+                        .timestamp(now.toString())
+                        .build();
+
+                    // Process through the standard IoT pipeline (persists to DB)
+                    iotService.processTelemetry(telemetry);
+                    
+                    // Notify any active observers (like the debug log)
+                    for (SimulationCallback callback : callbacks) {
+                        try {
+                            callback.onSimulatedData(telemetry);
+                        } catch (Exception e) {
+                            // ignore callback errors
+                        }
+                    }
                 }
             }
 
-            // Log interesting events
-            if (soundLevel > 3000) {
-                log.warn("[SIMULATOR] 🚨 GLASS BREAK DETECTED - Sound: {}", soundLevel);
-            } else if (motionDetected) {
-                log.debug("[SIMULATOR] 👁️ Motion detected, Sound: {}, Light: {}", soundLevel, lightLevel);
-            }
-
         } catch (Exception e) {
-            log.error("[SIMULATOR] Generation error: {}", e.getMessage(), e);
+            log.error("[SIMULATOR] Generation error: {}", e.getMessage());
         }
     }
 
