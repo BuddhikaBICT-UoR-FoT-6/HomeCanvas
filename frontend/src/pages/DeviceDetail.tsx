@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { deviceAPI } from '../services/api';
+import { deviceAPI, aiAPI } from '../services/api';
 
 // TypeScript interfaces for device details, telemetry, and actions
 interface SensorReading {
@@ -48,6 +48,7 @@ export default function DeviceDetail() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [controlLoading, setControlLoading] = useState(false);
   const [displaySuccess, setDisplaySuccess] = useState(false);
+  const [rcaAnalysis, setRcaAnalysis] = useState<{ cause: string; isThreat: boolean } | null>(null);
 
   // Constants for thresholds (matching ESP32 firmware)
   const SOUND_THRESHOLD = 100;
@@ -95,9 +96,28 @@ export default function DeviceDetail() {
       }
 
       setLoading(false);
+
+      // If sound is high, trigger RCA analysis
+      if (dev.lastTelemetry && dev.lastTelemetry.noiseLevel > 2000 && !rcaAnalysis) {
+        fetchRCA(deviceId);
+      }
     } catch (err) {
       console.error('Failed to load device:', err);
       setLoading(false);
+    }
+  };
+
+  const fetchRCA = async (deviceId: number) => {
+    try {
+      const res = await aiAPI.analyzeAlarm(deviceId);
+      setRcaAnalysis({
+        cause: res.data.root_cause_prediction,
+        isThreat: res.data.is_true_threat
+      });
+    } catch (e) {
+      // silent fail
+    } finally {
+      // Done
     }
   };
 
@@ -206,6 +226,27 @@ export default function DeviceDetail() {
     
       <h1 className="text-4xl font-bold mb-2 text-hc-text">{device.name}</h1>
       <p className="mb-6 text-hc-text-soft">MAC: {device.macAddress}</p>
+      
+      {/* AI Security RCA Panel */}
+      {rcaAnalysis && (
+        <div className={`hc-card mb-6 p-4 border-l-4 shadow-lg animate-fadeIn ${rcaAnalysis.isThreat ? 'border-red-500 bg-red-500/5' : 'border-emerald-500 bg-emerald-500/5'}`}>
+          <div className="flex items-start gap-4">
+            <div className={`rounded-full p-2 ${rcaAnalysis.isThreat ? 'bg-red-500/20 text-red-600' : 'bg-emerald-500/20 text-emerald-600'}`}>
+              {rcaAnalysis.isThreat ? '🚨' : '✅'}
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-hc-text-soft mb-1">Gemini Security Analysis</h4>
+              <p className="text-lg font-semibold text-hc-text leading-tight">{rcaAnalysis.cause}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${rcaAnalysis.isThreat ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                  {rcaAnalysis.isThreat ? 'TRUE THREAT' : 'FALSE ALARM'}
+                </span>
+                <span className="text-[10px] text-hc-text-soft italic">Analyzed pre/post trigger sensor timeline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status Bar */}
       <div className="hc-card mb-6 border-l-4 border-cyan-500 p-4">
@@ -262,11 +303,11 @@ export default function DeviceDetail() {
             <p className="text-xs text-gray-800 dark:text-black/70 mt-2 font-medium">PIR Status: Active</p>
           </div>
 
-          {/* Air Vent Status */}
+          {/* Smart Fan Status */}
           <div className={`rounded-lg p-4 border-l-4 shadow transition-all duration-300 ${lastReading.ventAngle > 0 ? 'bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/30 dark:to-cyan-800/20 border-cyan-400' : 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-700 border-gray-400 dark:border-slate-600'}`}>
-            <p className="text-xs text-gray-700 dark:text-cyan-300 font-bold">🌬️ SMART AIR VENT</p>
+            <p className="text-xs text-gray-700 dark:text-cyan-300 font-bold">🌬️ SMART FAN SYSTEM</p>
             <p className={`text-3xl font-bold mt-2 ${lastReading.ventAngle > 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-gray-500 dark:text-slate-500'}`}>
-              {lastReading.ventAngle > 0 ? 'Flowing' : 'Blocked'}
+              {lastReading.ventAngle > 0 ? 'Spinning' : 'Stopped'}
             </p>
             <div className="flex justify-between items-center mt-2">
               <p className="text-xs text-gray-600 dark:text-cyan-200/60">Angle: {lastReading.ventAngle}°</p>
@@ -330,7 +371,7 @@ export default function DeviceDetail() {
             </div>
           </div>
 
-          {/* Servo Control -> Smart Air Vent */}
+          {/* Smart Fan Control */}
           <div className={`rounded-2xl border-2 p-4 transition-all duration-300 ${
             fanOn 
               ? 'border-cyan-400 bg-cyan-400/10 shadow-lg shadow-cyan-400/20' 
@@ -339,11 +380,11 @@ export default function DeviceDetail() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className={`text-2xl transition-all duration-300 ${fanOn ? 'hc-fan-spin' : 'opacity-40'}`}>🌬️</span>
-                <span className="font-bold text-sm text-hc-text">Smart Air Vent</span>
+                <span className="font-bold text-sm text-hc-text">Smart Fan</span>
               </div>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                 fanOn ? 'bg-cyan-400/30 text-cyan-700 dark:text-cyan-300' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-              }`}>{fanOn ? 'OPEN' : 'CLOSED'}</span>
+              }`}>{fanOn ? 'ON' : 'OFF'}</span>
             </div>
             <div className="flex flex-col gap-2">
               <button
@@ -355,14 +396,14 @@ export default function DeviceDetail() {
                     : 'bg-slate-300/80 text-slate-700 hover:bg-slate-400/80 dark:bg-slate-700 dark:text-slate-200'
                 } disabled:opacity-50 hover:scale-[1.02]`}
               >
-                {fanOn ? 'Close Vent' : 'Open Vent'}
+                {fanOn ? 'Stop Fan' : 'Start Fan'}
               </button>
               <button
                 onClick={() => handleCommand('fan-auto')}
                 disabled={controlLoading}
                 className="w-full rounded-xl py-1.5 font-semibold text-xs border border-cyan-400/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-400/10 transition-all"
               >
-                ✨ Ventilation Auto
+                ✨ Fan Auto Mode
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { deviceAPI } from '../services/api';
+import { deviceAPI, aiAPI } from '../services/api';
 
 // Define the Device interface to match the expected structure of device data from 
 // the backend API.
@@ -43,7 +43,17 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
     const [controls, setControls] = useState<Record<number, DeviceControls>>({});
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editName, setEditName] = useState('');
+    const [aiPredictions, setAiPredictions] = useState<Record<number, { action: string; confidence: number }>>({});
     const navigate = useNavigate();
+    const [userRole, setUserRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            setUserRole(user.role);
+        }
+    }, []);
 
     // Fetch devices when the component mounts or when autoRefresh changes. 
     useEffect(() => {
@@ -64,9 +74,31 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
             const response = await deviceAPI.getDevices();
             setDevices(response.data);
             setLoading(false);
+            
+            // Fetch AI predictions for online devices
+            response.data.forEach((device: Device) => {
+                if (device.onlineStatus?.toLowerCase() === 'online') {
+                    fetchAIPrediction(device.id);
+                }
+            });
         } catch(err: any) {
             setError(err.response?.data?.message || 'Failed to fetch devices');
             setLoading(false);
+        }
+    };
+
+    const fetchAIPrediction = async (id: number) => {
+        try {
+            const res = await aiAPI.getActionPrediction(id);
+            setAiPredictions(prev => ({
+                ...prev,
+                [id]: { 
+                    action: res.data.predicted_action, 
+                    confidence: res.data.confidence_score 
+                }
+            }));
+        } catch (e) {
+            // silent fail for AI
         }
     };
 
@@ -156,6 +188,17 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
 
     return (
         <div className="hc-page min-h-screen bg-hc-bg text-hc-text transition-colors duration-300">
+            {userRole === 'GUEST' && (
+                <div className="bg-gradient-to-r from-cyan-600/90 to-blue-700/90 text-white px-4 py-2 text-center text-sm font-bold shadow-lg flex items-center justify-center gap-4 animate-fadeIn">
+                    <span className="flex items-center gap-1">✨ <span className="hidden sm:inline">Guest Mode Active:</span> Controlling Virtual Hardware</span>
+                    <button 
+                        onClick={() => navigate('/login')}
+                        className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-xs transition-colors border border-white/30"
+                    >
+                        Sign up for Real Hardware
+                    </button>
+                </div>
+            )}
             <div className="container mx-auto p-4 pt-16">
             {/* Header row: title + Live Updates + Theme Toggle inline */}
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -235,6 +278,16 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                             </span>
                         </div>
 
+                        {/* AI Prediction Chip */}
+                        {isOnline && aiPredictions[device.id] && (
+                            <div className="mb-4 flex items-center gap-2">
+                                <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-lg text-xs font-bold border border-purple-500/20 flex items-center gap-1.5 animate-pulse">
+                                    ✨ {aiPredictions[device.id].action}
+                                    <span className="text-[10px] opacity-60">({aiPredictions[device.id].confidence}%)</span>
+                                </span>
+                            </div>
+                        )}
+
                         <p className="mb-4 text-sm text-hc-text-soft">
                             <span className="font-mono text-hc-text">{device.macAddress}</span>
                         </p>
@@ -268,7 +321,7 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
 
                             {/* LED + Servo buttons — inline */}
                             <div className="flex gap-2 mb-3 flex-wrap">
-                                {/* LED Toggle */}
+                                {/* Light Toggle */}
                                 <button
                                     onClick={(e) => handleLED(e, device.id)}
                                     disabled={ctrl.loading || !isOnline}
@@ -277,13 +330,13 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                             ? 'bg-yellow-400/90 text-yellow-900 shadow-md shadow-yellow-400/30'
                                             : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700/60 dark:text-slate-300'
                                     } disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105`}
-                                    title={isOnline ? 'Toggle LED' : 'Device offline'}
+                                    title={isOnline ? 'Toggle Light' : 'Device offline'}
                                 >
                                     <span className="text-base">💡</span>
-                                    LED {ctrl.ledOn ? 'ON' : 'OFF'}
+                                    Light {ctrl.ledOn ? 'ON' : 'OFF'}
                                 </button>
 
-                                {/* Servo Toggle */}
+                                {/* Fan Toggle */}
                                 <button
                                     onClick={(e) => handleServo(e, device.id)}
                                     disabled={ctrl.loading || !isOnline}
@@ -292,10 +345,10 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                             ? 'bg-emerald-400/90 text-emerald-900 shadow-md shadow-emerald-400/30'
                                             : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700/60 dark:text-slate-300'
                                     } disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105`}
-                                    title={isOnline ? 'Toggle Servo' : 'Device offline'}
+                                    title={isOnline ? 'Toggle Fan' : 'Device offline'}
                                 >
-                                    <span className="text-base">🔧</span>
-                                    Servo {ctrl.servoOn ? '90°' : '0°'}
+                                    <span className={`text-base ${ctrl.servoOn ? 'animate-spin-slow' : ''}`}>⚙️</span>
+                                    Fan {ctrl.servoOn ? 'ON' : 'OFF'}
                                 </button>
                             </div>
 
