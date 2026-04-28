@@ -4,7 +4,7 @@ import axios from 'axios'; // Axios is a popular HTTP client for making API requ
 // This allows us to easily make requests to our backend API without having to specify the 
 // base URL and headers every time.
 const API = axios.create({
-    baseURL: 'http://localhost:8080/api', 
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api', 
     headers: {
         'Content-Type': 'application/json',
     },
@@ -42,6 +42,7 @@ export const authAPI = {
     login: (credentials: any) => API.post('/auth/login', credentials), // Log in a user
     getUser: (userId: string) => API.get(`/auth/user/${userId}`), // Fetch user data by user ID
     checkHealth: () => API.get('/auth/health'), // Check the health of the authentication service
+    demoLogin: () => API.post('/auth/demo'), // Login as special guest user
 };
 
 // ------------------------------------------------------------------------
@@ -84,6 +85,13 @@ export const simulationAPI = {
     stop: () => API.post('/simulation/stop'),
     getStatus: () => API.get('/simulation/status'),
     getInfo: () => API.get('/simulation/info'),
+};
+
+// ------------------------------------------------------------------------
+// HomeCanvas: AI Analysis API calls
+export const aiAPI = {
+    getActionPrediction: (deviceId: number) => API.get(`/ai/predict-action/${deviceId}`),
+    analyzeAlarm: (deviceId: number) => API.get(`/ai/analyze-alarm/${deviceId}`),
 };
 
 // Export the API instance for direct access if needed

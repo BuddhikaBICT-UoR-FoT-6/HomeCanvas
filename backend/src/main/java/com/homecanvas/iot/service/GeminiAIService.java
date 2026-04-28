@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.Gson;
 import com.homecanvas.iot.model.SensorEvent;
+import com.homecanvas.iot.dto.AIPredictionDTOs.*;
+import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -141,12 +143,73 @@ public class GeminiAIService {
     }
 
     /**
-     * Convert security anomaly to human-readable alert
-     * 
-     * Example:
-     * Input: sound=3200, lockdown=true
-     * Output: "CRITICAL ALERT: Possible glass break detected (sound spike: 3200)"
+     * Engine 1: Simplified Semantic Action Prompt ("What are they doing?")
      */
+    public ActionPredictionResponse predictCurrentAction(int light, int sound, boolean motion) {
+        if (!isConfigured) {
+            return new ActionPredictionResponse("AI Engine Offline", 0);
+        }
+
+        try {
+            String time = LocalDateTime.now().toLocalTime().toString().substring(0, 5);
+            String prompt = String.format(
+                "You are a smart home context engine. Look at the current sensor data and time of day. Output a strict JSON object guessing the human action occurring.\n\n" +
+                "Input Data: Time: %s. PIR: %b, Sound: %d, LDR: %d.\n\n" +
+                "Output Schema:\n" +
+                "{\n" +
+                "\"predicted_action\": (String: A short phrase like 'Watching TV', 'Sleeping', 'Cooking', 'Room Empty'),\n" +
+                "\"confidence_score\": (Integer 0-100)\n" +
+                "}",
+                time, motion, sound, light
+            );
+
+            String jsonResult = callGeminiAPI(prompt);
+            if (jsonResult != null) {
+                // Strip potential markdown code blocks if Gemini includes them
+                jsonResult = jsonResult.replace("```json", "").replace("```", "").trim();
+                return gson.fromJson(jsonResult, ActionPredictionResponse.class);
+            }
+        } catch (Exception e) {
+            log.error("[GEMINI] Action prediction failed: " + e.getMessage());
+        }
+        return new ActionPredictionResponse("Unknown Activity", 50);
+    }
+
+    /**
+     * Engine 2: Simplified RCA Prompt ("What just happened?")
+     */
+    public RCAResponse analyzeAlarmRCA(int soundLevel, boolean preMotion, boolean postMotion, int preSound, int postSound) {
+        if (!isConfigured) {
+            return new RCAResponse("AI Analysis Unavailable", false);
+        }
+
+        try {
+            String time = LocalDateTime.now().toLocalTime().toString().substring(0, 5);
+            String prompt = String.format(
+                "You are a forensic security AI. An alarm was triggered by a sound spike. Analyze the timeline before and after the trigger. Decide if this is a real threat or a false alarm. Output strict JSON.\n\n" +
+                "Input Data: Time %s.\n" +
+                "Pre-Trigger: PIR=%b, Sound=%d.\n" +
+                "Trigger: Sound=%d.\n" +
+                "Post-Trigger: PIR=%b, Sound=%d.\n\n" +
+                "Output Schema:\n" +
+                "{\n" +
+                "\"root_cause_prediction\": (String: A 1-sentence explanation of what physically caused the alarm based on the timeline),\n" +
+                "\"is_true_threat\": (Boolean: true if intruder, false if likely environmental noise)\n" +
+                "}",
+                time, preMotion, preSound, soundLevel, postMotion, postSound
+            );
+
+            String jsonResult = callGeminiAPI(prompt);
+            if (jsonResult != null) {
+                jsonResult = jsonResult.replace("```json", "").replace("```", "").trim();
+                return gson.fromJson(jsonResult, RCAResponse.class);
+            }
+        } catch (Exception e) {
+            log.error("[GEMINI] RCA analysis failed: " + e.getMessage());
+        }
+        return new RCAResponse("Unable to classify threat", true);
+    }
+
     public String generateSecurityAlert(int soundLevel, boolean lockdown, long timestamp) {
         if (!isConfigured) {
             return String.format("Security Alert - Sound Level: %d%s",
@@ -253,23 +316,6 @@ public class GeminiAIService {
 
     // ==================== SIMULATION HELPERS ====================
     // These simulate Gemini responses until the library is fully integrated
-
-    private String simulatePredictionResponse(List<SensorEvent> data) {
-        long totalMotionEvents = data.stream().filter(SensorEvent::getMotionDetected).count();
-        long totalEvents = data.size();
-        double occupancyRate = (double) totalMotionEvents / totalEvents * 100;
-
-        if (occupancyRate > 70) {
-            return "HIGH OCCUPANCY: Room consistently occupied. Peak hours: 8-10am, 12-1pm, 5-8pm. " +
-                   "Minimal activity detected 10pm-6am. Recommendation: Adjust lighting schedules.";
-        } else if (occupancyRate > 40) {
-            return "MODERATE OCCUPANCY: Room used intermittently. Primary usage: Afternoons and evenings. " +
-                   "Sparse early morning activity. Consider motion-triggered lighting.";
-        } else {
-            return "LOW OCCUPANCY: Room rarely occupied. Sporadic usage detected. " +
-                   "Recommend disabling climate control when unoccupied.";
-        }
-    }
 
     private String simulateAlertResponse(int soundLevel, boolean lockdown) {
         if (soundLevel > 3000) {

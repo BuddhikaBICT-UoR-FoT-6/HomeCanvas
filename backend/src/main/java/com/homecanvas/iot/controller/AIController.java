@@ -1,266 +1,78 @@
 package com.homecanvas.iot.controller;
 
-import com.homecanvas.iot.model.Device;
-import com.homecanvas.iot.model.OccupancyPattern;
-import com.homecanvas.iot.repository.DeviceRepository;
-import com.homecanvas.iot.repository.OccupancyPatternRepository;
+import com.homecanvas.iot.dto.AIPredictionDTOs.*;
 import com.homecanvas.iot.service.GeminiAIService;
-import com.homecanvas.iot.service.PatternAnalysisScheduler;
-import lombok.extern.slf4j.Slf4j;
+import com.homecanvas.iot.service.DeviceService;
+import com.homecanvas.iot.dto.DeviceDetailDTO;
+import com.homecanvas.auth.model.User;
+import com.homecanvas.auth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Optional;
 
-/**
- * AI & Analytics Controller
- * 
- * Endpoints for:
- * - Getting occupancy predictions
- * - Viewing AI insights
- * - Triggering manual analysis
- * - Monitoring Gemini API status
- */
 @RestController
-@RequestMapping("/api/iot/ai")
-@Slf4j
+@RequestMapping("/api/ai")
 public class AIController {
 
     @Autowired
-    private GeminiAIService geminiService;
+    private GeminiAIService geminiAIService;
 
     @Autowired
-    private OccupancyPatternRepository patternRepository;
+    private DeviceService deviceService;
 
     @Autowired
-    private DeviceRepository deviceRepository;
+    private UserRepository userRepository;
 
-    @Autowired
-    private PatternAnalysisScheduler patternScheduler;
-
-    /**
-     * GET /api/iot/ai/insights
-     * 
-     * Get latest AI insights for all devices
-     * Used by Analytics dashboard
-     */
-    @GetMapping("/insights")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> getInsights() {
-        try {
-            List<Device> devices = deviceRepository.findAll();
-            List<Map<String, Object>> deviceInsights = new ArrayList<>();
-
-            for (Device device : devices) {
-                Optional<OccupancyPattern> latestPattern = 
-                    patternRepository.findFirstByDeviceOrderByDateGeneratedDesc(device);
-
-                if (latestPattern.isPresent()) {
-                    OccupancyPattern pattern = latestPattern.get();
-                    deviceInsights.add(Map.of(
-                        "deviceId", device.getId(),
-                        "macAddress", device.getMacAddress(),
-                        "prediction", pattern.getPattern(),
-                        "summary", pattern.getSummary(),
-                        "occupancyPercentage", pattern.getOccupancyPercentage(),
-                        "confidence", pattern.getConfidenceScore(),
-                        "generatedAt", pattern.getDateGenerated().toString()
-                    ));
-                }
-            }
-
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "deviceCount", devices.size(),
-                "insights", deviceInsights,
-                "aiServiceAvailable", geminiService.isServiceAvailable(),
-                "timestamp", LocalDateTime.now().toString()
-            ));
-
-        } catch (Exception e) {
-            log.error("[AI_CONTROLLER] Error fetching insights: {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of(
-                "status", "error",
-                "message", e.getMessage()
-            ));
+    private Optional<User> resolveAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
+            return Optional.empty();
         }
+        Object principal = auth.getPrincipal();
+        if (principal instanceof User) return Optional.of((User) principal);
+        if (principal instanceof String) {
+            String username = (String) principal;
+            if (!"anonymousUser".equalsIgnoreCase(username)) return userRepository.findByUsername(username);
+        }
+        return Optional.empty();
     }
 
-    /**
-     * GET /api/iot/ai/pattern/{deviceId}
-     * 
-     * Get occupancy pattern for specific device
-     */
-    @GetMapping("/pattern/{deviceId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> getDevicePattern(@PathVariable Long deviceId) {
-        try {
-            Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Optional<OccupancyPattern> pattern = 
-                patternRepository.findFirstByDeviceOrderByDateGeneratedDesc(device);
-
-            if (pattern.isEmpty()) {
-                return ResponseEntity.ok(Map.of(
-                    "status", "no_data",
-                    "message", "No pattern data available yet. System will generate first analysis at 2 AM."
-                ));
-            }
-
-            OccupancyPattern p = pattern.get();
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "deviceId", deviceId,
-                "pattern", p.getPattern(),
-                "summary", p.getSummary(),
-                "occupancyPercentage", p.getOccupancyPercentage(),
-                "confidence", p.getConfidenceScore(),
-                "generatedAt", p.getDateGenerated().toString()
-            ));
-
-        } catch (Exception e) {
-            log.error("[AI_CONTROLLER] Error fetching device pattern: {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of(
-                "status", "error",
-                "message", e.getMessage()
-            ));
+    @GetMapping("/predict-action/{deviceId}")
+    public ActionPredictionResponse getActionPrediction(@PathVariable Long deviceId) {
+        Optional<User> user = resolveAuthenticatedUser();
+        DeviceDetailDTO device = deviceService.getDeviceDetail(deviceId, user.orElse(null));
+        
+        if (device != null && device.getLastTelemetry() != null) {
+            var last = device.getLastTelemetry();
+            return geminiAIService.predictCurrentAction(
+                last.getLightLevel(),
+                last.getNoiseLevel(),
+                last.getMotionDetected()
+            );
         }
+        return new ActionPredictionResponse("Device Offline", 0);
     }
 
-    /**
-     * GET /api/iot/ai/history/{deviceId}
-     * 
-     * Get pattern history for a device (last 30 days)
-     */
-    @GetMapping("/history/{deviceId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> getPatternHistory(
-        @PathVariable Long deviceId,
-        @RequestParam(defaultValue = "30") int days
-    ) {
-        try {
-            Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
-            List<OccupancyPattern> patterns = patternRepository
-                .findByDeviceAndDateGeneratedAfter(device, cutoff);
-
-            List<Map<String, Object>> history = new ArrayList<>();
-            for (OccupancyPattern p : patterns) {
-                history.add(Map.of(
-                    "date", p.getDateGenerated().toString(),
-                    "summary", p.getSummary(),
-                    "occupancy", p.getOccupancyPercentage(),
-                    "confidence", p.getConfidenceScore()
-                ));
-            }
-
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "deviceId", deviceId,
-                "days", days,
-                "recordCount", history.size(),
-                "history", history
-            ));
-
-        } catch (Exception e) {
-            log.error("[AI_CONTROLLER] Error fetching pattern history: {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of(
-                "status", "error",
-                "message", e.getMessage()
-            ));
+    @GetMapping("/analyze-alarm/{deviceId}")
+    public RCAResponse getAlarmRCA(@PathVariable Long deviceId) {
+        Optional<User> user = resolveAuthenticatedUser();
+        DeviceDetailDTO device = deviceService.getDeviceDetail(deviceId, user.orElse(null));
+        
+        if (device != null && device.getLastTelemetry() != null) {
+            // In a real scenario, we'd fetch actual pre/post history. 
+            // For the demo, we'll simulate the RCA data based on current state.
+            var last = device.getLastTelemetry();
+            return geminiAIService.analyzeAlarmRCA(
+                last.getNoiseLevel(),
+                false, // pre-motion
+                last.getMotionDetected(), // post-motion
+                500, // pre-sound
+                last.getNoiseLevel() // post-sound
+            );
         }
-    }
-
-    /**
-     * POST /api/iot/ai/analyze/{deviceId}
-     * 
-     * Manually trigger analysis for a device
-     * Admin only - used for testing
-     */
-    @PostMapping("/analyze/{deviceId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> manualAnalysis(@PathVariable Long deviceId) {
-        try {
-            Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            log.info("[AI_CONTROLLER] Manual analysis triggered for device: {}", device.getMacAddress());
-            patternScheduler.triggerManualAnalysis(device.getMacAddress());
-
-            // Fetch the newly created pattern
-            Optional<OccupancyPattern> pattern = 
-                patternRepository.findFirstByDeviceOrderByDateGeneratedDesc(device);
-
-            if (pattern.isPresent()) {
-                OccupancyPattern p = pattern.get();
-                return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", "Analysis completed",
-                    "pattern", p.getPattern(),
-                    "occupancy", p.getOccupancyPercentage(),
-                    "confidence", p.getConfidenceScore()
-                ));
-            } else {
-                return ResponseEntity.ok(Map.of(
-                    "status", "pending",
-                    "message", "Analysis in progress"
-                ));
-            }
-
-        } catch (Exception e) {
-            log.error("[AI_CONTROLLER] Manual analysis error: {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of(
-                "status", "error",
-                "message", e.getMessage()
-            ));
-        }
-    }
-
-    /**
-     * GET /api/iot/ai/status
-     * 
-     * Check Gemini API status and rate limits
-     */
-    @GetMapping("/status")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> getAIStatus() {
-        try {
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "geminiAvailable", geminiService.isServiceAvailable(),
-                "rateLimit", geminiService.getRateLimitStatus(),
-                "timestamp", LocalDateTime.now().toString()
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                "status", "error",
-                "message", e.getMessage()
-            ));
-        }
-    }
-
-    /**
-     * GET /api/iot/ai/health
-     * 
-     * Health check for AI service
-     */
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> health() {
-        return ResponseEntity.ok(Map.of(
-            "status", "healthy",
-            "timestamp", System.currentTimeMillis()
-        ));
+        return new RCAResponse("No recent alarm detected", false);
     }
 }
