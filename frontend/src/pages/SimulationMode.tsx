@@ -138,6 +138,27 @@ export default function SimulationMode() {
         return () => clearInterval(interval);
     }, []);
 
+    // Dynamic "Auto-Pilot" Logic for Guest Mode
+    useEffect(() => {
+        if (!isSimulating) return;
+
+        const interval = setInterval(() => {
+            const roomKeys = Object.keys(rooms);
+            const randomRoomId = roomKeys[Math.floor(Math.random() * roomKeys.length)];
+            const action = Math.random() > 0.5 ? 'light' : 'fan';
+            
+            toggleDevice(randomRoomId, action);
+            
+            setLogs(prev => [{
+                time: new Date().toLocaleTimeString(),
+                msg: `AI Auto-Pilot: Toggled ${action} in ${rooms[randomRoomId as keyof typeof rooms].name}`,
+                type: 'info'
+            }, ...prev].slice(0, 50));
+        }, 12000); // Trigger random event every 12 seconds
+
+        return () => clearInterval(interval);
+    }, [isSimulating, rooms, toggleDevice]);
+
     const addLog = (msg: string, type: 'info' | 'warn' | 'success' | 'ai' = 'info') => {
         const time = new Date().toLocaleTimeString();
         setLogs(prev => [{ time, msg, type }, ...prev].slice(0, 50));
@@ -274,9 +295,10 @@ export default function SimulationMode() {
                             
                             {/* Rooms */}
                             <Room {...rooms.living} x={50} y={50} width={300} height={200} onToggleOccupancy={toggleOccupancy} />
-                            <Room {...rooms.bedroom} x={350} y={50} width={200} height={200} onToggleOccupancy={toggleOccupancy} />
+                            <Room {...rooms.entrance} x={350} y={50} width={200} height={100} onToggleOccupancy={toggleOccupancy} />
+                            <Room {...rooms.nursery} x={350} y={150} width={200} height={100} onToggleOccupancy={toggleOccupancy} />
                             <Room {...rooms.kitchen} x={50} y={250} width={250} height={100} onToggleOccupancy={toggleOccupancy} />
-                            <Room {...rooms.bathroom} x={300} y={250} width={250} height={100} onToggleOccupancy={toggleOccupancy} />
+                            <Room {...rooms.bedroom} x={300} y={250} width={250} height={100} onToggleOccupancy={toggleOccupancy} />
                             
                             {/* Windows & Sensors */}
                             <g>
