@@ -270,9 +270,9 @@ export default function SimulationMode() {
                     </button>
                     <div>
                         <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                            Simulation Mode
+                            HomeCanvas
                         </h1>
-                        <p className="text-slate-400 text-sm">Interactive Smart Home Prototype</p>
+                        <p className="text-slate-400 text-sm">Guest Preview · Smart Home Dashboard</p>
                     </div>
                 </div>
                 <div className="flex gap-3">
@@ -280,11 +280,11 @@ export default function SimulationMode() {
                         onClick={simulateGlassBreak}
                         className="px-4 py-2 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg hover:bg-rose-500/30 transition-all font-semibold"
                     >
-                        Simulate Glass Break
+                        🚨 Trigger Security Alert
                     </button>
-                    <div className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg font-bold flex items-center gap-2">
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                        SIMULATOR ACTIVE
+                    <div className="px-4 py-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
+                        LIVE
                     </div>
                 </div>
             </div>
