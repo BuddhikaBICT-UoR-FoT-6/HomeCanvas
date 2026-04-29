@@ -431,56 +431,58 @@ export default function SimulationMode() {
                         </div>
 
 
-                {/* Sidebar / Logs */}
-                <div className="hc-glass rounded-2xl flex flex-col h-[700px]">
-                    {/* Rate-Limited AI Insights Panel */}
-                    <div className="p-6 border-b border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent">
+                {/* Sidebar */}
+                <div className="hc-glass rounded-2xl flex flex-col h-[900px]">
+
+                    {/* Section 1: Rate-Limited AI Insights */}
+                    <div className="p-5 border-b border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent">
                         <div className="flex justify-between items-center mb-3">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
+                            <h2 className="text-base font-bold flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(129,140,248,0.5)]"></span>
                                 Gemini AI Insights
                             </h2>
-                            <div className="text-right">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold block">Confidence</span>
-                                <span className="text-sm font-mono text-indigo-400 font-bold">{Math.round(confidenceScore * 100)}%</span>
-                            </div>
+                            <span className="text-sm font-mono text-indigo-400 font-bold">{Math.round(confidenceScore * 100)}%</span>
                         </div>
 
-                        {/* Rate Limit Cooldown Bar */}
+                        {/* API Cooldown Bar */}
                         <div className="mb-3">
                             <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                                <span className="uppercase font-bold">API Cooldown</span>
-                                <span className="font-mono">Next analysis: 15s cycle</span>
+                                <span className="uppercase font-bold tracking-widest">API Rate Limit</span>
+                                <span className="font-mono">{isAnalyzing ? 'Processing...' : 'Ready · 15s cycle'}</span>
                             </div>
                             <div className="w-full bg-slate-800 rounded-full h-1.5">
-                                <div 
-                                    className={`h-1.5 rounded-full transition-all duration-1000 ${
-                                        isAnalyzing ? 'bg-indigo-500 w-full animate-pulse' : 'bg-emerald-500/60 w-2/3'
-                                    }`}
-                                ></div>
+                                <div className={`h-1.5 rounded-full transition-all duration-1000 ${
+                                    isAnalyzing ? 'bg-indigo-500 w-full animate-pulse' : 'bg-emerald-500/70 w-2/3'
+                                }`}></div>
                             </div>
                         </div>
 
-                        {/* Room-specific Insights */}
+                        {/* Semantic insights per AI-monitored room */}
                         <div className="space-y-2 mb-3">
                             {rooms.kitchen.occupied && (
                                 <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
-                                    🔥 <strong>Kitchen:</strong> Acoustic pattern matches cooking activity. No anomaly detected.
+                                    🔥 <strong>Kitchen:</strong> Acoustic pattern matches cooking. No fire anomaly.
                                 </div>
                             )}
                             {rooms.entrance.occupied && (
                                 <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
-                                    🚪 <strong>Entrance:</strong> Motion signature consistent with resident arrival pattern.
+                                    🚪 <strong>Entrance:</strong> Motion matches resident arrival pattern.
                                 </div>
                             )}
                             {rooms.nursery.occupied && (
                                 <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs text-pink-200">
-                                    👶 <strong>Baby Room:</strong> Movement detected. Sleep disruption probability: 34%.
+                                    👶 <strong>Baby Room:</strong> Movement detected. Sleep disruption: 34%.
+                                </div>
+                            )}
+                            {!rooms.kitchen.occupied && !rooms.entrance.occupied && !rooms.nursery.occupied && (
+                                <div className="p-2 rounded-lg bg-slate-800/50 border border-white/5 text-xs text-slate-400 italic">
+                                    No AI-monitored rooms are active. Click a room on the map to trigger analysis.
                                 </div>
                             )}
                         </div>
 
-                        <div className={`p-4 rounded-xl border transition-all duration-500 ${
+                        {/* General Gemini Summary */}
+                        <div className={`p-3 rounded-xl border transition-all duration-500 ${
                             isAnalyzing ? 'bg-slate-800/30 border-white/5 opacity-50' : 'bg-indigo-500/5 border-indigo-500/20'
                         }`}>
                             {isAnalyzing ? (
@@ -490,70 +492,58 @@ export default function SimulationMode() {
                                         <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                                         <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
                                     </div>
-                                    <span className="text-xs text-indigo-300/70 font-mono italic">Gemini is processing telemetry...</span>
+                                    <span className="text-xs text-indigo-300/70 font-mono italic">Gemini analysing telemetry...</span>
                                 </div>
                             ) : (
-                                <p className="text-sm text-indigo-100 leading-relaxed italic">
-                                    &ldquo;{aiInsights}&rdquo;
-                                </p>
+                                <p className="text-xs text-indigo-100 leading-relaxed italic">&ldquo;{aiInsights}&rdquo;</p>
                             )}
                         </div>
                     </div>
 
-                    <div className="p-6 py-4 border-b border-white/5 flex items-center justify-between">
+                    {/* Section 2: Live Events Header */}
+                    <div className="p-4 py-3 border-b border-white/5 flex items-center justify-between">
                         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
                             Live Events
                         </h2>
                         <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-mono">
-                            {logs.length} events recorded
+                            {logs.length} events
                         </span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar" ref={logContainerRef}>
+                    {/* Section 2: Live Events Log */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar" ref={logContainerRef}>
                         {logs.map((log, i) => (
                             <div key={i} className={`p-3 rounded-lg text-sm border transition-all ${
                                 log.type === 'warn' ? 'bg-rose-500/10 border-rose-500/20 text-rose-200' :
                                 log.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200' :
-                                log.type === 'ai' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-200 animate-slideIn' :
+                                log.type === 'ai' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-200' :
                                 'bg-slate-800/50 border-white/5 text-slate-300'
                             }`}>
                                 <div className="flex justify-between mb-1">
                                     <span className="font-mono text-[10px] opacity-50">{log.time}</span>
-                                    {log.type === 'warn' && <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">Security Alert</span>}
-                                    {log.type === 'ai' && <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">AI Insight</span>}
+                                    {log.type === 'warn' && <span className="text-[10px] font-bold uppercase text-rose-400">Alert</span>}
+                                    {log.type === 'ai' && <span className="text-[10px] font-bold uppercase text-indigo-400">AI</span>}
                                 </div>
-                                <p className={log.type === 'ai' ? 'italic' : ''}>{log.msg}</p>
+                                <p className={`text-xs ${log.type === 'ai' ? 'italic' : ''}`}>{log.msg}</p>
                             </div>
                         ))}
                         {logs.length === 0 && (
                             <div className="text-center py-10 text-slate-600">
-                                <p>No events recorded yet.</p>
-                                <p className="text-xs mt-2">Trigger sensors to see data</p>
+                                <p>No events yet.</p>
+                                <p className="text-xs mt-2">Click rooms on the map to begin</p>
                             </div>
                         )}
                     </div>
-                    <div className="p-6 bg-slate-900/50 rounded-b-2xl border-t border-white/10">
-                        <div className="space-y-4">
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Simulated Rules</h4>
-                                <ul className="text-xs space-y-1.5 text-slate-400">
-                                    <li className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-cyan-400 rounded-full"></div>
-                                        IF motion=TRUE THEN light=ON, fan=ON
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-rose-400 rounded-full"></div>
-                                        IF sound{'>'}3000 THEN trigger_alert=TRUE
-                                    </li>
-                                </ul>
-                            </div>
-                            <div className="pt-4 border-t border-white/5">
-                                <p className="text-[10px] text-slate-500 leading-relaxed">
-                                    This simulation runs on program-level logic to demonstrate system capabilities without hardware dependency.
-                                </p>
-                            </div>
-                        </div>
+
+                    {/* Section 3: Rules Footer */}
+                    <div className="p-4 bg-slate-900/50 rounded-b-2xl border-t border-white/10">
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Automation Rules</h4>
+                        <ul className="text-[10px] space-y-1 text-slate-500">
+                            <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-400 rounded-full"></div>motion=TRUE → light=ON, fan=ON</li>
+                            <li className="flex items-center gap-2"><div className="w-1 h-1 bg-rose-400 rounded-full"></div>sound &gt; 3000Hz → security alert</li>
+                            <li className="flex items-center gap-2"><div className="w-1 h-1 bg-indigo-400 rounded-full"></div>AI analyses every 15s (rate-limited)</li>
+                        </ul>
                     </div>
                 </div>
             </div>
