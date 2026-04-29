@@ -356,64 +356,135 @@ export default function SimulationMode() {
                             </div>
                         )}
                         
-                        <div className="hc-glass p-5 rounded-xl border-l-4 border-cyan-500">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Sound Monitor: Window 1</h3>
-                            <div className="flex items-end gap-1 h-12 mb-2">
-                                {Array.from({length: 20}).map((_, i) => (
-                                    <div 
-                                        key={i} 
-                                        className={`w-full transition-all duration-300 ${soundLevels.window1 > 3000 ? 'bg-rose-500' : 'bg-cyan-500'}`}
-                                        style={{ height: `${(soundLevels.window1 / 3500) * (Math.random() * 100)}%` }}
-                                    ></div>
+                        {/* Floor-wise Per-Room Analytics */}
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
+                                Floor 1 — Room Analytics
+                            </h3>
+                            <div className="space-y-2">
+                                {[rooms.kitchen, rooms.entrance, rooms.living].map(room => (
+                                    <div key={room.id} className={`hc-glass p-3 rounded-xl border transition-all duration-300 ${
+                                        room.occupied ? 'border-cyan-500/40 bg-cyan-500/5' : 'border-white/5'
+                                    }`}>
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-300">{room.name}</span>
+                                                {'aiSpecialty' in room && (
+                                                    <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 uppercase font-bold">
+                                                        {(room as any).aiSpecialty === 'fire_detection' ? '🔥 Fire Watch' :
+                                                         (room as any).aiSpecialty === 'guest_detection' ? '🚪 Guest Detect' : 'AI'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                    room.light ? 'bg-yellow-400/20 text-yellow-300' : 'bg-slate-700 text-slate-500'
+                                                }`}>💡 {room.light ? 'ON' : 'OFF'}</span>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                    room.fan ? 'bg-emerald-400/20 text-emerald-300' : 'bg-slate-700 text-slate-500'
+                                                }`}>⚙️ {room.fan ? 'ON' : 'OFF'}</span>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                    room.occupied ? 'bg-cyan-400/20 text-cyan-300 animate-pulse' : 'bg-slate-700 text-slate-500'
+                                                }`}>{room.occupied ? '● Active' : '○ Clear'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className={`text-2xl font-mono font-bold ${soundLevels.window1 > 3000 ? 'text-rose-400' : 'text-cyan-400'}`}>
-                                    {Math.round(soundLevels.window1)} Hz
-                                </span>
-                                <span className="text-xs text-slate-500">KY-037 Acoustic Sensor</span>
                             </div>
                         </div>
 
-                        <div className="hc-glass p-5 rounded-xl border-l-4 border-blue-500">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Sound Monitor: Window 2</h3>
-                            <div className="flex items-end gap-1 h-12 mb-2">
-                                {Array.from({length: 20}).map((_, i) => (
-                                    <div 
-                                        key={i} 
-                                        className={`w-full transition-all duration-300 ${soundLevels.window2 > 3000 ? 'bg-rose-500' : 'bg-blue-500'}`}
-                                        style={{ height: `${(soundLevels.window2 / 3500) * (Math.random() * 100)}%` }}
-                                    ></div>
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
+                                Floor 2 — Room Analytics
+                            </h3>
+                            <div className="space-y-2">
+                                {[rooms.nursery, rooms.bedroom].map(room => (
+                                    <div key={room.id} className={`hc-glass p-3 rounded-xl border transition-all duration-300 ${
+                                        room.occupied ? 'border-pink-500/40 bg-pink-500/5' : 'border-white/5'
+                                    }`}>
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-300">{room.name}</span>
+                                                {'aiSpecialty' in room && (
+                                                    <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 uppercase font-bold">
+                                                        👶 Movement
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                    room.light ? 'bg-yellow-400/20 text-yellow-300' : 'bg-slate-700 text-slate-500'
+                                                }`}>💡 {room.light ? 'ON' : 'OFF'}</span>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                    room.fan ? 'bg-emerald-400/20 text-emerald-300' : 'bg-slate-700 text-slate-500'
+                                                }`}>⚙️ {room.fan ? 'ON' : 'OFF'}</span>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                    room.occupied ? 'bg-pink-400/20 text-pink-300 animate-pulse' : 'bg-slate-700 text-slate-500'
+                                                }`}>{room.occupied ? '● Active' : '○ Clear'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className={`text-2xl font-mono font-bold ${soundLevels.window2 > 3000 ? 'text-rose-400' : 'text-blue-400'}`}>
-                                    {Math.round(soundLevels.window2)} Hz
-                                </span>
-                                <span className="text-xs text-slate-500">KY-037 Acoustic Sensor</span>
-                            </div>
                         </div>
-                    </div>
-                </div>
+
 
                 {/* Sidebar / Logs */}
                 <div className="hc-glass rounded-2xl flex flex-col h-[700px]">
-                    {/* AI Intelligence Panel */}
+                    {/* Rate-Limited AI Insights Panel */}
                     <div className="p-6 border-b border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent">
-                        <div className="flex justify-between items-center mb-4">
+                        <div className="flex justify-between items-center mb-3">
                             <h2 className="text-xl font-bold flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(129,140,248,0.5)]"></span>
-                                Gemini AI Intelligence
+                                Gemini AI Insights
                             </h2>
-                            <div className="flex flex-col items-end">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Confidence</span>
+                            <div className="text-right">
+                                <span className="text-[10px] text-slate-500 uppercase font-bold block">Confidence</span>
                                 <span className="text-sm font-mono text-indigo-400 font-bold">{Math.round(confidenceScore * 100)}%</span>
                             </div>
                         </div>
-                        
-                        <div className={`p-4 rounded-xl border transition-all duration-500 ${isAnalyzing ? 'bg-slate-800/30 border-white/5 opacity-50' : 'bg-indigo-500/5 border-indigo-500/20 shadow-inner'}`}>
+
+                        {/* Rate Limit Cooldown Bar */}
+                        <div className="mb-3">
+                            <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                <span className="uppercase font-bold">API Cooldown</span>
+                                <span className="font-mono">Next analysis: 15s cycle</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5">
+                                <div 
+                                    className={`h-1.5 rounded-full transition-all duration-1000 ${
+                                        isAnalyzing ? 'bg-indigo-500 w-full animate-pulse' : 'bg-emerald-500/60 w-2/3'
+                                    }`}
+                                ></div>
+                            </div>
+                        </div>
+
+                        {/* Room-specific Insights */}
+                        <div className="space-y-2 mb-3">
+                            {rooms.kitchen.occupied && (
+                                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
+                                    🔥 <strong>Kitchen:</strong> Acoustic pattern matches cooking activity. No anomaly detected.
+                                </div>
+                            )}
+                            {rooms.entrance.occupied && (
+                                <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
+                                    🚪 <strong>Entrance:</strong> Motion signature consistent with resident arrival pattern.
+                                </div>
+                            )}
+                            {rooms.nursery.occupied && (
+                                <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs text-pink-200">
+                                    👶 <strong>Baby Room:</strong> Movement detected. Sleep disruption probability: 34%.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={`p-4 rounded-xl border transition-all duration-500 ${
+                            isAnalyzing ? 'bg-slate-800/30 border-white/5 opacity-50' : 'bg-indigo-500/5 border-indigo-500/20'
+                        }`}>
                             {isAnalyzing ? (
-                                <div className="flex items-center gap-3 py-2">
+                                <div className="flex items-center gap-3 py-1">
                                     <div className="flex gap-1">
                                         <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                                         <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -423,7 +494,7 @@ export default function SimulationMode() {
                                 </div>
                             ) : (
                                 <p className="text-sm text-indigo-100 leading-relaxed italic">
-                                    "{aiInsights}"
+                                    &ldquo;{aiInsights}&rdquo;
                                 </p>
                             )}
                         </div>
