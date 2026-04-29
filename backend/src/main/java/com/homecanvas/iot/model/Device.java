@@ -7,6 +7,9 @@ import lombok.Data; // generates getters, setters, toString, equals, and hashCod
 import lombok.NoArgsConstructor; // generates a no-argument constructor
 import com.homecanvas.auth.model.User;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "devices")
@@ -56,6 +59,15 @@ public class Device {
 
     @Column(name = "last_command_at")
     private LocalDateTime lastCommandAt;
+
+    // Relationships for cascading deletes
+    @JsonIgnore
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SensorEvent> sensorEvents = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ActionLog> actionLogs = new ArrayList<>();
 
     // Constructor without id and lastSeen, as these are auto-generated and managed by the system
     public Device(User owner, String macAddress, String name) {

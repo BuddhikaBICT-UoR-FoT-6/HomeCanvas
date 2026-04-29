@@ -19,6 +19,7 @@ public class MqttPublisher {
             
             System.out.println("Published!");
             client.disconnect();
+            client.close();
             
         } catch (Exception e) {
             e.printStackTrace();

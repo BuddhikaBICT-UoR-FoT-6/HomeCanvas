@@ -14,6 +14,13 @@ public class MqttListener {
             client.subscribe("homecanvas/telemetry/#", (topic, msg) -> {
                 System.out.println("Received: " + topic + " -> " + new String(msg.getPayload()));
             });
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    if (client.isConnected()) client.disconnect();
+                    client.close();
+                } catch (Exception e) {}
+            }));
             
         } catch (Exception e) {
             e.printStackTrace();

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.MessageBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * IoT Service - Database & MQTT Orchestration
@@ -28,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @Service
 @Transactional
+@Slf4j
 public class IotService {
 
     @Autowired
@@ -35,9 +37,6 @@ public class IotService {
 
     @Autowired
     private SensorEventRepository sensorEventRepository;
-
-    @Autowired(required = false)
-    private com.homecanvas.iot.repository.ActionLogRepository actionLogRepository;
 
     @Autowired
     private MessageChannel mqttOutboundChannel;
@@ -54,7 +53,7 @@ public class IotService {
      */
     public void processTelemetry(OccupancyTelemetryDTO telemetry) {
         if (telemetry.getMacAddress() == null) {
-            System.err.println("[ERROR] Cannot process telemetry without MAC address");
+            log.error("[IOT] Cannot process telemetry without MAC address");
             return;
         }
 
@@ -65,7 +64,7 @@ public class IotService {
                 newDevice.setMacAddress(telemetry.getMacAddress());
                 newDevice.setName("Device-" + telemetry.getMacAddress().substring(12));
                 newDevice.setCreatedAt(LocalDateTime.now());
-                System.out.println("[DEVICE] New device registered: " + newDevice.getName());
+                log.info("[IOT] New device auto-registered: {} (MAC: {})", newDevice.getName(), telemetry.getMacAddress());
                 return deviceRepository.save(newDevice);
             });
 
@@ -83,7 +82,7 @@ public class IotService {
         sensorEvent.setCreatedAt(LocalDateTime.now());
         sensorEventRepository.save(sensorEvent);
         
-        System.out.println("[PERSISTENCE] Telemetry saved for device: " + device.getName());
+        log.debug("[IOT] Telemetry persisted for device: {}", device.getName());
     }
 
     /**
@@ -147,16 +146,13 @@ public class IotService {
                 return;
             }
             
-            System.out.println("[MQTT] Publishing command: " + json);
-            
             mqttOutboundChannel.send(MessageBuilder.withPayload(json)
                     .setHeader("mqtt_topic", COMMAND_TOPIC)
                     .build());
             
-            System.out.println("[MQTT] Command published to " + COMMAND_TOPIC);
+            log.info("[MQTT] Command published to topic: {}", COMMAND_TOPIC);
         } catch (Exception e) {
-            System.err.println("[ERROR] Publishing command: " + e.getMessage());
-            e.printStackTrace();
+            log.error("[MQTT] Failed to publish command: {}", e.getMessage());
         }
     }
 
@@ -174,9 +170,9 @@ public class IotService {
                     .setHeader("mqtt_topic", topic)
                     .build());
             
-            System.out.println("[MQTT] Published legacy command to " + topic);
+            log.debug("[MQTT] Published legacy command to {}", topic);
         } catch (Exception e) {
-            System.err.println("[MQTT] Error publishing command: " + e.getMessage());
+            log.error("[MQTT] Error publishing legacy command: {}", e.getMessage());
         }
     }
 

@@ -17,6 +17,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories; // 
 import org.springframework.context.annotation.ComponentScan; // @ComponentScan enables component scanning
 // for specified packages to ensure controllers and services are discovered and registered as beans.
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // BCryptPasswordEncoder is a
+import org.springframework.scheduling.annotation.EnableScheduling;
 // class that provides a method to hash passwords using the BCrypt algorithm, which is
 // a strong hashing function designed for password hashing.
 
@@ -28,6 +29,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // BCry
 @ComponentScan(basePackages = {"com.homecanvas.auth", "com.homecanvas.iot"})
 @EntityScan(basePackages = {"com.homecanvas.auth.model", "com.homecanvas.iot.model"})
 @EnableJpaRepositories(basePackages = {"com.homecanvas.auth.repository", "com.homecanvas.iot.repository"})
+@EnableScheduling
 public class HomeCanvasAuthApplication {
     public static void main(String[] args) {
         // The main method is the entry point of the application. It calls 

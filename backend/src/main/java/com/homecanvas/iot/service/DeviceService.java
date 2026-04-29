@@ -15,13 +15,14 @@ import com.homecanvas.iot.repository.SensorEventRepository;
 import com.homecanvas.iot.repository.ActionLogRepository;
 import com.homecanvas.auth.model.User;
 import com.homecanvas.auth.dto.UserBasicDTO;
+import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional // Ensure that all database operations in this service are wrapped 
-// in a transaction for data integrity
+@Transactional
+@Slf4j
 public class DeviceService {
     @Autowired
     private DeviceRepository deviceRepository;
@@ -51,14 +52,7 @@ public class DeviceService {
 
     // Get detailed info of a specific device, including last telemetry data for the dashboard
     public DeviceDetailDTO getDeviceDetail(Long deviceId, User user){
-        // First, we need to find the device by its ID and ensure it belongs to the user.
-        Device device;
-        if (user == null) {
-            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
-        } else {
-            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
-                .orElse(null);
-        }
+        Device device = getDeviceForUser(deviceId, user);
 
         // If the device does not exist or does not belong to the user, return null.
         if(device == null){
@@ -81,13 +75,7 @@ public class DeviceService {
 
     // Get paginated telemetry history for a device, with access control to ensure the user owns the device.
     public PagedTelemetryDTO getTelemetryHistory(Long deviceId, User user, Pageable pageable){
-        Device device;
-        if (user == null) {
-            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
-        } else {
-            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
-                .orElse(null); // If the device does not exist or does not belong to the user, return null or throw an exception.
-        }
+        Device device = getDeviceForUser(deviceId, user);
         
         if(device == null){
             return null;
@@ -115,14 +103,7 @@ public class DeviceService {
 
     // Get paginated action audit log for a device, ensuring the user owns the device.
     public PagedActionAuditDTO getActionAudit(Long deviceId, User user, Pageable pageable){
-        Device device;
-        if (user == null) {
-            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
-        } else {
-            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
-                .orElse(null); // If the device does not exist or does not belong to the user, 
-                // return null or throw an exception. 
-        }
+        Device device = getDeviceForUser(deviceId, user);
         
         if(device == null){
             return new PagedActionAuditDTO(); // return empty result or throw exception
@@ -242,15 +223,10 @@ public class DeviceService {
     // fanOn, ledOn, displayText, and servoAngle. This method stores the command for the 
     // device to retrieve on its next telemetry poll.
     public DeviceCommandDTO sendCommand(Long deviceId, User user, DeviceCommandDTO command) {
-        Device device;
-        if (user == null) {
-            device = deviceRepository.findByIdAndOwnerIsNull(Long.valueOf(deviceId)).orElse(null);
-        } else {
-            device = deviceRepository.findByIdAndOwnerOrOwnerIsNull(Long.valueOf(deviceId), user)
-                .orElse(null);
-        }
+        Device device = getDeviceForUser(deviceId, user);
         
         if(device == null){
+            log.warn("[AUTH] Unauthorized command attempt for device ID: {}", deviceId);
             return new DeviceCommandDTO(); // Return empty command if device not found/unauthorized
         }
 
@@ -303,7 +279,20 @@ public class DeviceService {
 
     // Delete a device
     public void deleteDevice(Long id) {
+        log.info("[IOT] Deleting device ID: {}. Cascading will handle related records.", id);
         deviceRepository.deleteById(id);
+    }
+
+    /**
+     * Centralized helper for device authorization.
+     * Ensures users only see their own devices or unclaimed devices.
+     */
+    private Device getDeviceForUser(Long deviceId, User user) {
+        if (user == null) {
+            return deviceRepository.findByIdAndOwnerIsNull(deviceId).orElse(null);
+        } else {
+            return deviceRepository.findByIdAndOwnerOrOwnerIsNull(deviceId, user).orElse(null);
+        }
     }
 
 }
