@@ -84,6 +84,7 @@ export default function SimulationMode() {
     // AI States
     const [aiInsights, setAiInsights] = useState<string>("Analyzing initial environment...");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isSimulating, setIsSimulating] = useState(true);
     const [confidenceScore, setConfidenceScore] = useState(0.85);
     const [threatLevel, setThreatLevel] = useState<'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('NONE');
     
@@ -146,18 +147,22 @@ export default function SimulationMode() {
             const roomKeys = Object.keys(rooms);
             const randomRoomId = roomKeys[Math.floor(Math.random() * roomKeys.length)];
             const action = Math.random() > 0.5 ? 'light' : 'fan';
-            
-            toggleDevice(randomRoomId, action);
-            
+
+            // Toggle device inline (avoids circular dependency)
+            setRooms(prev => {
+                const room = prev[randomRoomId as keyof typeof prev];
+                return { ...prev, [randomRoomId]: { ...room, [action]: !room[action as keyof typeof room] } };
+            });
+
             setLogs(prev => [{
                 time: new Date().toLocaleTimeString(),
                 msg: `AI Auto-Pilot: Toggled ${action} in ${rooms[randomRoomId as keyof typeof rooms].name}`,
-                type: 'info'
+                type: 'info' as const
             }, ...prev].slice(0, 50));
-        }, 12000); // Trigger random event every 12 seconds
+        }, 12000);
 
         return () => clearInterval(interval);
-    }, [isSimulating, rooms, toggleDevice]);
+    }, [isSimulating]);
 
     const addLog = (msg: string, type: 'info' | 'warn' | 'success' | 'ai' = 'info') => {
         const time = new Date().toLocaleTimeString();
@@ -429,7 +434,8 @@ export default function SimulationMode() {
                                 ))}
                             </div>
                         </div>
-
+                    </div>
+                </div>
 
                 {/* Sidebar */}
                 <div className="hc-glass rounded-2xl flex flex-col h-[900px]">
