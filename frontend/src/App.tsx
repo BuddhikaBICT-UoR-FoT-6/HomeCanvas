@@ -6,7 +6,6 @@ import DeviceDashboard from './pages/DeviceDashboard'
 import DeviceDetail from './pages/DeviceDetail'
 import Analytics from './pages/Analytics'
 import UserManagement from './pages/UserManagement'
-import SimulationMode from './pages/SimulationMode'
 import MainLayout from './components/MainLayout'
 import './App.css'
 
@@ -34,10 +33,6 @@ function AppRoutes({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onToggle
         <Route 
           path="/register" 
           element={<RegisterForm onRegisterSuccess={handleRegisterSuccess} onSwitchToLogin={() => navigate('/login')} />} 
-        />
-        <Route 
-          path="/simulation" 
-          element={<SimulationMode />} 
         />
         
         {/* Authenticated Routes wrapped in MainLayout */}

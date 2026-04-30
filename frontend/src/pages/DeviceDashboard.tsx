@@ -46,6 +46,11 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
     const [aiPredictions, setAiPredictions] = useState<Record<number, { action: string; confidence: number }>>({});
     const navigate = useNavigate();
     const [userRole, setUserRole] = useState<string | null>(null);
+    const [manualOverrides, setManualOverrides] = useState<Set<number>>(new Set());
+    const [simLogs, setSimLogs] = useState<{time: string, msg: string, type: string}[]>([]);
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard');
+    const [telemetryHistory, setTelemetryHistory] = useState<Record<string, number[]>>({});
+    const [selectedRoomKey, setSelectedRoomKey] = useState<string>('living');
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -68,6 +73,60 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
         
         return () => clearInterval(interval);
     }, [autoRefresh]);
+
+    // Update telemetry history for charts
+    useEffect(() => {
+        const roomKeys = ['living', 'kitchen', 'entrance', 'baby', 'bedroom'];
+        setTelemetryHistory(prev => {
+            const newHistory = { ...prev };
+            roomKeys.forEach(key => {
+                const device = devices.find(d => d.name.toLowerCase().includes(key));
+                const val = device?.lastTelemetry?.lightLevel ?? Math.floor(Math.random() * 100);
+                const current = newHistory[key] || Array(10).fill(0);
+                newHistory[key] = [...current.slice(1), val];
+            });
+            return newHistory;
+        });
+    }, [devices]);
+
+    // Guest Mode Simulation: Randomly toggle devices unless manually overridden
+    useEffect(() => {
+        if (userRole !== 'GUEST' || !autoRefresh) return;
+
+        const interval = setInterval(() => {
+            const onlineDevices = devices.filter(d => 
+                d.onlineStatus?.toLowerCase() === 'online' && !manualOverrides.has(d.id)
+            );
+            
+            if (onlineDevices.length === 0) return;
+
+            const target = onlineDevices[Math.floor(Math.random() * onlineDevices.length)];
+            const ctrl = getControls(target.id);
+            const action = Math.random() > 0.5 ? 'light' : 'fan';
+            
+            if (action === 'light') {
+                const newState = !ctrl.ledOn;
+                deviceAPI.sendCommand(target.id, { ledOn: newState });
+                updateControl(target.id, { ledOn: newState });
+                setSimLogs(prev => [{
+                    time: new Date().toLocaleTimeString(),
+                    msg: `AI Auto: ${target.name} light turned ${newState ? 'ON' : 'OFF'}`,
+                    type: 'auto'
+                }, ...prev].slice(0, 5));
+            } else {
+                const newState = !ctrl.servoOn;
+                deviceAPI.sendCommand(target.id, { fanOn: newState });
+                updateControl(target.id, { servoOn: newState });
+                setSimLogs(prev => [{
+                    time: new Date().toLocaleTimeString(),
+                    msg: `AI Auto: ${target.name} fan turned ${newState ? 'ON' : 'OFF'}`,
+                    type: 'auto'
+                }, ...prev].slice(0, 5));
+            }
+        }, 8000); // Dynamic event every 8 seconds
+
+        return () => clearInterval(interval);
+    }, [userRole, autoRefresh, devices, manualOverrides, controls]);
 
     const fetchDevices = async () => {
         try {
@@ -125,6 +184,15 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
             const newState = !ctrl.ledOn;
             await deviceAPI.sendCommand(deviceId, { ledOn: newState });
             updateControl(deviceId, { ledOn: newState, loading: false });
+            // User manual override persists
+            if (userRole === 'GUEST') {
+                setManualOverrides(prev => new Set(prev).add(deviceId));
+                setSimLogs(prev => [{
+                    time: new Date().toLocaleTimeString(),
+                    msg: `User Override: ${devices.find(d => d.id === deviceId)?.name} light set to ${newState ? 'ON' : 'OFF'}`,
+                    type: 'manual'
+                }, ...prev].slice(0, 5));
+            }
         } catch {
             updateControl(deviceId, { loading: false });
         }
@@ -140,6 +208,15 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
             const newState = !ctrl.servoOn;
             await deviceAPI.sendCommand(deviceId, { fanOn: newState });
             updateControl(deviceId, { servoOn: newState, loading: false });
+            // User manual override persists
+            if (userRole === 'GUEST') {
+                setManualOverrides(prev => new Set(prev).add(deviceId));
+                setSimLogs(prev => [{
+                    time: new Date().toLocaleTimeString(),
+                    msg: `User Override: ${devices.find(d => d.id === deviceId)?.name} fan set to ${newState ? 'ON' : 'OFF'}`,
+                    type: 'manual'
+                }, ...prev].slice(0, 5));
+            }
         } catch {
             updateControl(deviceId, { loading: false });
         }
@@ -226,8 +303,26 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                     )}
                 </div>
             </div>
+            {/* ── Guest-Only: Tab Switcher ─────────────────── */}
+            {userRole === 'GUEST' && (
+                <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">
+                    <button 
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                    >
+                        🏠 Home Overview
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('analytics')}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'analytics' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                    >
+                        📊 System Analytics
+                    </button>
+                </div>
+            )}
+
             {/* ── Guest-Only: Floor Map + AI Insights ─────────────────── */}
-            {userRole === 'GUEST' && (() => {
+            {userRole === 'GUEST' && activeTab === 'dashboard' && (() => {
                 // Map device names to floor/room slots
                 const roomSlots = [
                     { key: 'living',   label: 'LIVING ROOM',    floor: 1, nameMatch: 'living',   badge: null,               badgeColor: 'cyan',    aiTag: null },
@@ -416,6 +511,146 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                 </div>
                 );
             })()}
+
+            {/* ── Guest-Only: Performance Analytics View ─────────────────── */}
+            {userRole === 'GUEST' && activeTab === 'analytics' && (
+                <div className="space-y-6 mb-8 animate-fadeIn">
+                    {/* Room Selector for Analysis */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        {['living', 'kitchen', 'entrance', 'baby', 'bedroom'].map(key => (
+                            <button 
+                                key={key}
+                                onClick={() => setSelectedRoomKey(key)}
+                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${selectedRoomKey === key ? 'bg-cyan-500 text-white shadow-lg' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}
+                            >
+                                {key}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {(() => {
+                            const d = devices.find(d => d.name.toLowerCase().includes(selectedRoomKey));
+                            const ctrl = d ? getControls(d.id) : null;
+                            return [
+                                { label: 'Device ID', val: d?.id || '---', color: 'cyan' },
+                                { label: 'Current Light', val: `${d?.lastTelemetry?.lightLevel ?? 0}%`, color: 'amber' },
+                                { label: 'Motion Status', val: d?.lastTelemetry?.motionDetected ? 'ACTIVE' : 'CLEAR', color: d?.lastTelemetry?.motionDetected ? 'rose' : 'emerald' },
+                                { label: 'Control State', val: `${ctrl?.ledOn ? '💡 ON' : '💡 OFF'} / ${ctrl?.servoOn ? '⚙️ ON' : '⚙️ OFF'}`, color: 'indigo' },
+                            ].map(stat => (
+                                <div key={stat.label} className="hc-glass p-4 rounded-2xl border-l-4" style={{borderColor: `var(--${stat.color}-500)`}}>
+                                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-1">{stat.label}</p>
+                                    <p className="text-xl font-bold text-slate-200">{stat.val}</p>
+                                </div>
+                            ))
+                        })()}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Dynamic Chart: Light Intensity History */}
+                        <div className="hc-glass p-6 rounded-2xl">
+                            <h3 className="text-sm font-bold text-slate-300 mb-6 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><span className="text-yellow-400">💡</span> Light Level: {selectedRoomKey.toUpperCase()}</span>
+                                <span className="text-[10px] text-slate-500 font-mono">Live Telemetry (10s window)</span>
+                            </h3>
+                            <div className="h-48 w-full border-l border-b border-white/10 relative flex items-end justify-between px-2">
+                                {(telemetryHistory[selectedRoomKey] || Array(10).fill(0)).map((h, i) => (
+                                    <div 
+                                        key={i} 
+                                        className="w-[8%] bg-gradient-to-t from-cyan-600/50 to-cyan-400 rounded-t-sm transition-all duration-500 shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                                        style={{ height: `${Math.max(5, h)}%` }}
+                                    ></div>
+                                ))}
+                                <div className="absolute left-0 bottom-0 w-full h-full flex flex-col justify-between pointer-events-none opacity-20 text-[8px] font-mono pl-1">
+                                    <span>100%</span><span>75%</span><span>50%</span><span>25%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Chart: System Actions Activity */}
+                        <div className="hc-glass p-6 rounded-2xl">
+                            <h3 className="text-sm font-bold text-slate-300 mb-6 flex items-center gap-2">
+                                <span className="text-rose-400">🚨</span> Security Alerts (5m)
+                            </h3>
+                            <div className="h-48 w-full border-l border-b border-white/10 relative flex items-end gap-1 px-2">
+                                {[10, 5, 0, 0, 0, 0, 0, 0, 0, 0].map((h, i) => (
+                                    <div 
+                                        key={i} 
+                                        className="w-[8%] bg-rose-500/50 rounded-t-sm" 
+                                        style={{ height: `${h}%` }}
+                                    ></div>
+                                ))}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">No anomalies detected</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* System Actions Log */}
+                        <div className="lg:col-span-1 hc-glass p-6 rounded-2xl">
+                            <h3 className="text-sm font-bold text-slate-300 mb-4 flex justify-between items-center">
+                                ⚙️ System Actions
+                                {simLogs.length === 0 && <span className="text-[10px] text-rose-500 font-bold">No logs</span>}
+                            </h3>
+                            <div className="space-y-3">
+                                {simLogs.map((log, i) => (
+                                    <div key={i} className="flex gap-3 text-xs animate-slideIn">
+                                        <span className="text-slate-500 font-mono whitespace-nowrap">{log.time}</span>
+                                        <span className={log.type === 'manual' ? 'text-cyan-400 font-bold' : 'text-slate-400'}>
+                                            {log.msg}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Floor-wise Detailed Status */}
+                        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Re-using floor logic for monitoring list */}
+                            {(() => {
+                                const roomSlots = [
+                                    { key: 'living',   label: 'LIVING ROOM',    floor: 1, nameMatch: 'living' },
+                                    { key: 'kitchen',  label: 'KITCHEN',        floor: 1, nameMatch: 'kitchen' },
+                                    { key: 'entrance', label: 'MAIN ENTRANCE',  floor: 1, nameMatch: 'entrance' },
+                                    { key: 'nursery',  label: 'BABY ROOM',      floor: 2, nameMatch: 'baby' },
+                                    { key: 'bedroom',  label: 'MASTER BEDROOM', floor: 2, nameMatch: 'bedroom' },
+                                ];
+                                const enriched = roomSlots.map(slot => {
+                                    const d = devices.find(d => d.name.toLowerCase().includes(slot.nameMatch));
+                                    const ctrl = d ? getControls(d.id) : null;
+                                    return { ...slot, d, ctrl, motion: d?.lastTelemetry?.motionDetected };
+                                });
+
+                                return [1, 2].map(f => (
+                                    <div key={f} className="hc-glass p-5 rounded-2xl">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Floor {f} Detailed Monitor</h4>
+                                        <div className="space-y-4">
+                                            {enriched.filter(r => r.floor === f).map(r => (
+                                                <div key={r.key} className="flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-200">{r.label}</p>
+                                                        <p className="text-[10px] text-slate-500 font-mono">{r.d?.macAddress || '---'}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className={`text-xs font-bold ${r.motion ? 'text-cyan-400 animate-pulse' : 'text-slate-600'}`}>
+                                                            {r.motion ? 'OCCUPIED' : 'VACANT'}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-500 uppercase">
+                                                            L: {r.ctrl?.ledOn ? 'ON' : 'OFF'} | F: {r.ctrl?.servoOn ? 'ON' : 'OFF'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+                    </div>
+                </div>
+            )}
 
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
