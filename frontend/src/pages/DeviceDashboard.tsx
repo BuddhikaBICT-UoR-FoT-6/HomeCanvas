@@ -329,10 +329,22 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                 {(() => { const r = enriched[0]; return (<>
                                     <rect x="10" y="28" width="300" height="130" rx="4" fill={r.motion ? 'rgba(6,182,212,0.18)' : 'rgba(6,182,212,0.05)'} stroke={r.motion ? '#22d3ee' : '#0891b2'} strokeWidth="1.5"/>
                                     <text x="20" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>LIVING ROOM</text>
-                                    <circle cx="155" cy="85" r="16" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="147" y="89" style={{fontSize:12}}>💡</text>
-                                    <circle cx="200" cy="85" r="16" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="192" y="89" style={{fontSize:12}}>⚙️</text>
+                                    <circle 
+                                        cx="155" cy="85" r="16" 
+                                        fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-yellow-400 transition-colors"
+                                        onClick={(e) => r.device && handleLED(e, r.device.id)}
+                                    />
+                                    <text x="147" y="89" style={{fontSize:12, pointerEvents:'none'}}>💡</text>
+                                    <circle 
+                                        cx="200" cy="85" r="16" 
+                                        fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-emerald-400 transition-colors"
+                                        onClick={(e) => r.device && handleServo(e, r.device.id)}
+                                    />
+                                    <text x="192" y="89" style={{fontSize:12, pointerEvents:'none'}}>⚙️</text>
                                     {r.motion && <circle cx="155" cy="85" r="26" fill="rgba(6,182,212,0.1)" stroke="#22d3ee" strokeWidth="0.5" strokeDasharray="4 2"/>}
                                     <text x="108" y="145" style={{fontSize:9,fill: r.motion ? '#67e8f9' : '#64748b'}}>Motion: {r.motion ? '● ACTIVE' : '○ Clear'}</text>
                                 </>); })()}
@@ -341,10 +353,22 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                     <rect x="310" y="28" width="150" height="130" rx="4" fill={r.motion ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.05)'} stroke="#dc2626" strokeWidth="1.5"/>
                                     <text x="320" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>KITCHEN</text>
                                     <text x="320" y="64" style={{fontSize:8,fill:'#fca5a5'}}>🔥 Fire Watch</text>
-                                    <circle cx="360" cy="95" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="353" y="99" style={{fontSize:11}}>💡</text>
-                                    <circle cx="395" cy="95" r="14" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="387" y="99" style={{fontSize:11}}>⚙️</text>
+                                    <circle 
+                                        cx="360" cy="95" r="14" 
+                                        fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-yellow-400 transition-colors"
+                                        onClick={(e) => r.device && handleLED(e, r.device.id)}
+                                    />
+                                    <text x="353" y="99" style={{fontSize:11, pointerEvents:'none'}}>💡</text>
+                                    <circle 
+                                        cx="395" cy="95" r="14" 
+                                        fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-emerald-400 transition-colors"
+                                        onClick={(e) => r.device && handleServo(e, r.device.id)}
+                                    />
+                                    <text x="387" y="99" style={{fontSize:11, pointerEvents:'none'}}>⚙️</text>
                                     <text x="316" y="145" style={{fontSize:9,fill:'#f87171'}}>Acoustic: Active</text>
                                 </>); })()}
                                 {/* Entrance */}
@@ -352,8 +376,14 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                     <rect x="460" y="28" width="150" height="130" rx="4" fill={r.motion ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.05)'} stroke="#059669" strokeWidth="1.5"/>
                                     <text x="468" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>ENTRANCE</text>
                                     <text x="468" y="64" style={{fontSize:8,fill:'#6ee7b7'}}>🚪 PIR Sensor</text>
-                                    <circle cx="510" cy="95" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="503" y="99" style={{fontSize:11}}>💡</text>
+                                    <circle 
+                                        cx="510" cy="95" r="14" 
+                                        fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-yellow-400 transition-colors"
+                                        onClick={(e) => r.device && handleLED(e, r.device.id)}
+                                    />
+                                    <text x="503" y="99" style={{fontSize:11, pointerEvents:'none'}}>💡</text>
                                     <text x="466" y="145" style={{fontSize:9,fill: r.motion ? '#34d399' : '#64748b'}}>Motion: {r.motion ? '● DETECTED' : '○ Clear'}</text>
                                 </>); })()}
 
@@ -365,10 +395,22 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                     <rect x="10" y="186" width="300" height="120" rx="4" fill={r.motion ? 'rgba(236,72,153,0.18)' : 'rgba(236,72,153,0.05)'} stroke={r.motion ? '#ec4899' : '#db2777'} strokeWidth="1.5"/>
                                     <text x="20" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>BABY ROOM</text>
                                     <text x="20" y="221" style={{fontSize:8,fill:'#f9a8d4'}}>👶 Movement Monitor</text>
-                                    <circle cx="155" cy="252" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="148" y="256" style={{fontSize:11}}>💡</text>
-                                    <circle cx="190" cy="252" r="14" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="182" y="256" style={{fontSize:11}}>⚙️</text>
+                                    <circle 
+                                        cx="155" cy="252" r="14" 
+                                        fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-yellow-400 transition-colors"
+                                        onClick={(e) => r.device && handleLED(e, r.device.id)}
+                                    />
+                                    <text x="148" y="256" style={{fontSize:11, pointerEvents:'none'}}>💡</text>
+                                    <circle 
+                                        cx="190" cy="252" r="14" 
+                                        fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-emerald-400 transition-colors"
+                                        onClick={(e) => r.device && handleServo(e, r.device.id)}
+                                    />
+                                    <text x="182" y="256" style={{fontSize:11, pointerEvents:'none'}}>⚙️</text>
                                     {r.motion && <circle cx="155" cy="252" r="24" fill="rgba(236,72,153,0.1)" stroke="#ec4899" strokeWidth="0.5" strokeDasharray="4 2"/>}
                                     <text x="108" y="296" style={{fontSize:9,fill: r.motion ? '#f472b6' : '#64748b'}}>Motion: {r.motion ? '● ACTIVE' : '○ Clear'}</text>
                                 </>); })()}
@@ -376,10 +418,22 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                 {(() => { const r = enriched[4]; return (<>
                                     <rect x="310" y="186" width="300" height="120" rx="4" fill="rgba(99,102,241,0.05)" stroke="#4f46e5" strokeWidth="1.5"/>
                                     <text x="320" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>MASTER BEDROOM</text>
-                                    <circle cx="430" cy="252" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="423" y="256" style={{fontSize:11}}>💡</text>
-                                    <circle cx="465" cy="252" r="14" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
-                                    <text x="457" y="256" style={{fontSize:11}}>⚙️</text>
+                                    <circle 
+                                        cx="430" cy="252" r="14" 
+                                        fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-yellow-400 transition-colors"
+                                        onClick={(e) => r.device && handleLED(e, r.device.id)}
+                                    />
+                                    <text x="423" y="256" style={{fontSize:11, pointerEvents:'none'}}>💡</text>
+                                    <circle 
+                                        cx="465" cy="252" r="14" 
+                                        fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} 
+                                        stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"
+                                        className="cursor-pointer hover:stroke-emerald-400 transition-colors"
+                                        onClick={(e) => r.device && handleServo(e, r.device.id)}
+                                    />
+                                    <text x="457" y="256" style={{fontSize:11, pointerEvents:'none'}}>⚙️</text>
                                     <text x="318" y="296" style={{fontSize:9,fill:'#818cf8'}}>Temp: Nominal</text>
                                 </>); })()}
                             </svg>
@@ -477,10 +531,6 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                 </div>
                 );
             })()}
-
-            )}
-
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {devices.map(device => {
                     const isOnline = device.onlineStatus?.toLowerCase() === 'online';
