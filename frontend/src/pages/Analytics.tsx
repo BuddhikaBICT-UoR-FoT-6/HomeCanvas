@@ -17,7 +17,7 @@ interface AnalyticsSummary {
 const COLORS = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#eab308'];
 
 export default function Analytics() {
-    const [range, setRange] = useState<'5m' | '1h' | '24h'>('24h');
+    const [range, setRange] = useState<'5m' | '1h' | '24h'>('5m');
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -103,7 +103,19 @@ export default function Analytics() {
     useEffect(() => {
         if (userRole === null) return; // Wait for role
         fetchAnalytics();
-        const interval = setInterval(fetchAnalytics, userRole === 'GUEST' ? 3000 : 10000);
+        
+        // Dynamic refresh speed based on range
+        const getDelay = () => {
+            if (userRole !== 'GUEST') return 10000;
+            switch(range) {
+                case '5m': return 2000;  // 2 seconds for 5m range
+                case '1h': return 5000;  // 5 seconds for 1h range
+                case '24h': return 10000; // 10 seconds for 24h range
+                default: return 5000;
+            }
+        };
+
+        const interval = setInterval(fetchAnalytics, getDelay());
         return () => clearInterval(interval);
     }, [range, userRole]);
 
