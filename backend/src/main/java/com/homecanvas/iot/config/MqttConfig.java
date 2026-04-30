@@ -18,17 +18,37 @@ import org.springframework.messaging.MessageHandler;
 @Configuration
 public class MqttConfig {
 
-    private static final String MQTT_BROKER_URL = "tcp://localhost:1883";
-    private static final String CLIENT_ID = "HomeCanvas-Backend-" + System.currentTimeMillis();
-    private static final String TELEMETRY_TOPIC = "homecanvas/telemetry/#";
+    @org.springframework.beans.factory.annotation.Value("${mqtt.broker.url}")
+    private String brokerUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${mqtt.username:}")
+    private String username;
+
+    @org.springframework.beans.factory.annotation.Value("${mqtt.password:}")
+    private String password;
+
+    @org.springframework.beans.factory.annotation.Value("${mqtt.client.id}")
+    private String clientId;
+
+    @org.springframework.beans.factory.annotation.Value("${mqtt.topic.telemetry}")
+    private String telemetryTopic;
 
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
-        options.setServerURIs(new String[] { MQTT_BROKER_URL });
+        
+        options.setServerURIs(new String[] { brokerUrl });
+        
+        if (username != null && !username.isEmpty()) {
+            options.setUserName(username);
+            options.setPassword(password.toCharArray());
+        }
+        
         options.setCleanSession(true);
         options.setAutomaticReconnect(true);
+        options.setKeepAliveInterval(60);
+        
         factory.setConnectionOptions(options);
         return factory;
     }
@@ -42,8 +62,10 @@ public class MqttConfig {
 
     @Bean
     public MessageProducer inbound() {
-        MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(CLIENT_ID + "-In",
-                mqttClientFactory(), TELEMETRY_TOPIC);
+        MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
+                clientId + "-In-" + System.currentTimeMillis(),
+                mqttClientFactory(), 
+                telemetryTopic);
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());
         adapter.setQos(1);
@@ -61,7 +83,9 @@ public class MqttConfig {
     @Bean
     @ServiceActivator(inputChannel = "mqttOutboundChannel")
     public MessageHandler outbound() {
-        MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(CLIENT_ID + "-Out", mqttClientFactory());
+        MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(
+                clientId + "-Out-" + System.currentTimeMillis(), 
+                mqttClientFactory());
         messageHandler.setAsync(true);
         messageHandler.setDefaultTopic("homecanvas/commands/broadcast");
         return messageHandler;
