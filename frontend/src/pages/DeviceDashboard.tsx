@@ -226,8 +226,165 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                     )}
                 </div>
             </div>
+            {/* ── Guest-Only: Floor Map + AI Insights ─────────────────── */}
+            {userRole === 'GUEST' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    {/* Left: Floor Plan + Analytics (2 cols) */}
+                    <div className="lg:col-span-2 space-y-4">
+                        {/* SVG Floor Map */}
+                        <div className="hc-glass rounded-2xl p-6">
+                            <h2 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
+                                Live Floor Plan — 2 Floors · 5 Rooms
+                            </h2>
+                            <svg viewBox="0 0 620 320" className="w-full h-auto rounded-xl">
+                                {/* Floor 1 label */}
+                                <text x="10" y="20" className="fill-violet-400 font-bold text-[11px]" style={{fontSize:11,fontWeight:'bold',fill:'#a78bfa'}}>FLOOR 1</text>
+                                {/* Outer wall F1 */}
+                                <rect x="10" y="28" width="600" height="130" rx="6" fill="none" stroke="#334155" strokeWidth="3"/>
+                                {/* Living Room */}
+                                <rect x="10" y="28" width="300" height="130" rx="4" fill="rgba(6,182,212,0.07)" stroke="#0891b2" strokeWidth="1.5"/>
+                                <text x="20" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>LIVING ROOM</text>
+                                <circle cx="155" cy="90" r="20" fill="rgba(6,182,212,0.15)" className="animate-ping" style={{animationDuration:'3s'}}/>
+                                <text x="125" y="115" style={{fontSize:9,fill:'#67e8f9'}}>💡 Fan · Motion</text>
+                                {/* Kitchen */}
+                                <rect x="310" y="28" width="150" height="130" rx="4" fill="rgba(239,68,68,0.07)" stroke="#dc2626" strokeWidth="1.5"/>
+                                <text x="320" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>KITCHEN</text>
+                                <text x="320" y="68" style={{fontSize:8,fill:'#fca5a5'}}>🔥 Fire Watch</text>
+                                <text x="320" y="140" style={{fontSize:9,fill:'#f87171'}}>💡 Fan · Acoustic</text>
+                                {/* Main Entrance */}
+                                <rect x="460" y="28" width="150" height="130" rx="4" fill="rgba(16,185,129,0.07)" stroke="#059669" strokeWidth="1.5"/>
+                                <text x="468" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>ENTRANCE</text>
+                                <text x="468" y="68" style={{fontSize:8,fill:'#6ee7b7'}}>🚪 Guest Detect</text>
+                                <text x="468" y="140" style={{fontSize:9,fill:'#34d399'}}>💡 Motion · PIR</text>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Floor 2 label */}
+                                <text x="10" y="178" style={{fontSize:11,fontWeight:'bold',fill:'#f472b6'}}>FLOOR 2</text>
+                                {/* Outer wall F2 */}
+                                <rect x="10" y="186" width="600" height="120" rx="6" fill="none" stroke="#334155" strokeWidth="3"/>
+                                {/* Baby Room */}
+                                <rect x="10" y="186" width="300" height="120" rx="4" fill="rgba(236,72,153,0.07)" stroke="#db2777" strokeWidth="1.5"/>
+                                <text x="20" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>BABY ROOM</text>
+                                <text x="20" y="222" style={{fontSize:8,fill:'#f9a8d4'}}>👶 Movement Monitor</text>
+                                <circle cx="155" cy="250" r="14" fill="rgba(236,72,153,0.15)" className="animate-ping" style={{animationDuration:'2s'}}/>
+                                <text x="125" y="295" style={{fontSize:9,fill:'#f472b6'}}>💡 Fan · IR Sensor</text>
+                                {/* Master Bedroom */}
+                                <rect x="310" y="186" width="300" height="120" rx="4" fill="rgba(99,102,241,0.07)" stroke="#4f46e5" strokeWidth="1.5"/>
+                                <text x="320" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>MASTER BEDROOM</text>
+                                <text x="320" y="295" style={{fontSize:9,fill:'#818cf8'}}>💡 Fan · Temp</text>
+                            </svg>
+                        </div>
+
+                        {/* Floor-wise Analytics Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Floor 1 */}
+                            <div className="hc-glass rounded-2xl p-4">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
+                                    Floor 1 — Room Status
+                                </h3>
+                                <div className="space-y-2">
+                                    {[
+                                        { name: 'Living Room', badge: null, color: 'cyan' },
+                                        { name: 'Kitchen', badge: '🔥 Fire Watch', color: 'rose' },
+                                        { name: 'Main Entrance', badge: '🚪 Guest Detect', color: 'emerald' },
+                                    ].map(r => (
+                                        <div key={r.name} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5">
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-300">{r.name}</span>
+                                                {r.badge && <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded bg-${r.color}-500/20 text-${r.color}-300 font-bold uppercase`}>{r.badge}</span>}
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">💡 ON</span>
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">⚙️ ON</span>
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold animate-pulse">● Active</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Floor 2 */}
+                            <div className="hc-glass rounded-2xl p-4">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
+                                    Floor 2 — Room Status
+                                </h3>
+                                <div className="space-y-2">
+                                    {[
+                                        { name: 'Baby Room', badge: '👶 Movement', color: 'pink' },
+                                        { name: 'Master Bedroom', badge: null, color: 'indigo' },
+                                    ].map(r => (
+                                        <div key={r.name} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5">
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-300">{r.name}</span>
+                                                {r.badge && <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded bg-${r.color}-500/20 text-${r.color}-300 font-bold uppercase`}>{r.badge}</span>}
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">💡 OFF</span>
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">⚙️ OFF</span>
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-500 font-bold">○ Clear</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: AI Insights Sidebar */}
+                    <div className="hc-glass rounded-2xl flex flex-col" style={{minHeight: '480px'}}>
+                        {/* Section 1: Gemini Insights */}
+                        <div className="p-5 border-b border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent flex-1">
+                            <div className="flex justify-between items-center mb-3">
+                                <h2 className="text-sm font-bold flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(129,140,248,0.5)]"></span>
+                                    Gemini AI Insights
+                                </h2>
+                                <span className="text-xs font-mono text-indigo-400 font-bold">87%</span>
+                            </div>
+                            {/* Rate Limit Bar */}
+                            <div className="mb-4">
+                                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                    <span className="uppercase font-bold tracking-widest">API Rate Limit</span>
+                                    <span className="font-mono">Ready · 15s cycle</span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-1.5">
+                                    <div className="h-1.5 rounded-full bg-emerald-500/70 w-2/3 transition-all duration-1000"></div>
+                                </div>
+                            </div>
+                            {/* Room-Specific Semantic Insights */}
+                            <div className="space-y-2 mb-4">
+                                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
+                                    🔥 <strong>Kitchen:</strong> Acoustic pattern matches cooking. No fire anomaly.
+                                </div>
+                                <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
+                                    🚪 <strong>Entrance:</strong> Motion matches resident arrival pattern.
+                                </div>
+                                <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs text-pink-200">
+                                    👶 <strong>Baby Room:</strong> No movement. Sleep cycle active.
+                                </div>
+                            </div>
+                            {/* General AI summary */}
+                            <div className="p-3 rounded-xl border bg-indigo-500/5 border-indigo-500/20">
+                                <p className="text-xs text-indigo-100 leading-relaxed italic">
+                                    &ldquo;System observing nominal patterns across all zones. Energy conservation mode active in Floor 2. AI predicts low-activity period for the next 2 hours.&rdquo;
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Automation Rules */}
+                        <div className="p-4 bg-slate-900/50 rounded-b-2xl border-t border-white/10">
+                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Automation Rules</h4>
+                            <ul className="text-[10px] space-y-1 text-slate-500">
+                                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-400 rounded-full"></div>motion=TRUE → light=ON, fan=ON</li>
+                                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-rose-400 rounded-full"></div>acoustic spike → fire/security alert</li>
+                                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-indigo-400 rounded-full"></div>Gemini analyses every 15s (rate-limited)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+
                 {devices.map(device => {
                     const isOnline = device.onlineStatus?.toLowerCase() === 'online';
                     const ctrl = getControls(device.id);
