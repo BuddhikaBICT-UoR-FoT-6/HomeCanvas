@@ -227,7 +227,30 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                 </div>
             </div>
             {/* ── Guest-Only: Floor Map + AI Insights ─────────────────── */}
-            {userRole === 'GUEST' && (
+            {userRole === 'GUEST' && (() => {
+                // Map device names to floor/room slots
+                const roomSlots = [
+                    { key: 'living',   label: 'LIVING ROOM',    floor: 1, nameMatch: 'living',   badge: null,               badgeColor: 'cyan',    aiTag: null },
+                    { key: 'kitchen',  label: 'KITCHEN',        floor: 1, nameMatch: 'kitchen',  badge: '🔥 Fire Watch',    badgeColor: 'rose',    aiTag: '🔥' },
+                    { key: 'entrance', label: 'MAIN ENTRANCE',  floor: 1, nameMatch: 'entrance', badge: '🚪 Guest Detect',  badgeColor: 'emerald', aiTag: '🚪' },
+                    { key: 'nursery',  label: 'BABY ROOM',      floor: 2, nameMatch: 'baby',     badge: '👶 Movement',      badgeColor: 'pink',    aiTag: '👶' },
+                    { key: 'bedroom',  label: 'MASTER BEDROOM', floor: 2, nameMatch: 'bedroom',  badge: null,               badgeColor: 'indigo',  aiTag: null },
+                ];
+
+                // Match each slot to a real device by name keyword
+                const enriched = roomSlots.map(slot => {
+                    const device = devices.find(d =>
+                        d.name.toLowerCase().includes(slot.nameMatch)
+                    );
+                    const ctrl = device ? getControls(device.id) : null;
+                    const motion = device?.lastTelemetry?.motionDetected ?? false;
+                    return { ...slot, device, lightOn: ctrl?.ledOn ?? false, fanOn: ctrl?.servoOn ?? false, motion };
+                });
+
+                const floor1 = enriched.filter(r => r.floor === 1);
+                const floor2 = enriched.filter(r => r.floor === 2);
+
+                return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     {/* Left: Floor Plan + Analytics (2 cols) */}
                     <div className="lg:col-span-2 space-y-4">
@@ -238,102 +261,100 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                 Live Floor Plan — 2 Floors · 5 Rooms
                             </h2>
                             <svg viewBox="0 0 620 320" className="w-full h-auto rounded-xl">
-                                {/* Floor 1 label */}
-                                <text x="10" y="20" className="fill-violet-400 font-bold text-[11px]" style={{fontSize:11,fontWeight:'bold',fill:'#a78bfa'}}>FLOOR 1</text>
-                                {/* Outer wall F1 */}
+                                {/* Floor 1 */}
+                                <text x="10" y="20" style={{fontSize:11,fontWeight:'bold',fill:'#a78bfa'}}>FLOOR 1</text>
                                 <rect x="10" y="28" width="600" height="130" rx="6" fill="none" stroke="#334155" strokeWidth="3"/>
                                 {/* Living Room */}
-                                <rect x="10" y="28" width="300" height="130" rx="4" fill="rgba(6,182,212,0.07)" stroke="#0891b2" strokeWidth="1.5"/>
-                                <text x="20" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>LIVING ROOM</text>
-                                <circle cx="155" cy="90" r="20" fill="rgba(6,182,212,0.15)" className="animate-ping" style={{animationDuration:'3s'}}/>
-                                <text x="125" y="115" style={{fontSize:9,fill:'#67e8f9'}}>💡 Fan · Motion</text>
+                                {(() => { const r = enriched[0]; return (<>
+                                    <rect x="10" y="28" width="300" height="130" rx="4" fill={r.motion ? 'rgba(6,182,212,0.18)' : 'rgba(6,182,212,0.05)'} stroke={r.motion ? '#22d3ee' : '#0891b2'} strokeWidth="1.5"/>
+                                    <text x="20" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>LIVING ROOM</text>
+                                    <circle cx="155" cy="85" r="16" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="147" y="89" style={{fontSize:12}}>💡</text>
+                                    <circle cx="200" cy="85" r="16" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="192" y="89" style={{fontSize:12}}>⚙️</text>
+                                    {r.motion && <circle cx="155" cy="85" r="26" fill="rgba(6,182,212,0.1)" stroke="#22d3ee" strokeWidth="0.5" strokeDasharray="4 2"/>}
+                                    <text x="108" y="145" style={{fontSize:9,fill: r.motion ? '#67e8f9' : '#64748b'}}>Motion: {r.motion ? '● ACTIVE' : '○ Clear'}</text>
+                                </>); })()}
                                 {/* Kitchen */}
-                                <rect x="310" y="28" width="150" height="130" rx="4" fill="rgba(239,68,68,0.07)" stroke="#dc2626" strokeWidth="1.5"/>
-                                <text x="320" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>KITCHEN</text>
-                                <text x="320" y="68" style={{fontSize:8,fill:'#fca5a5'}}>🔥 Fire Watch</text>
-                                <text x="320" y="140" style={{fontSize:9,fill:'#f87171'}}>💡 Fan · Acoustic</text>
-                                {/* Main Entrance */}
-                                <rect x="460" y="28" width="150" height="130" rx="4" fill="rgba(16,185,129,0.07)" stroke="#059669" strokeWidth="1.5"/>
-                                <text x="468" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>ENTRANCE</text>
-                                <text x="468" y="68" style={{fontSize:8,fill:'#6ee7b7'}}>🚪 Guest Detect</text>
-                                <text x="468" y="140" style={{fontSize:9,fill:'#34d399'}}>💡 Motion · PIR</text>
+                                {(() => { const r = enriched[1]; return (<>
+                                    <rect x="310" y="28" width="150" height="130" rx="4" fill={r.motion ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.05)'} stroke="#dc2626" strokeWidth="1.5"/>
+                                    <text x="320" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>KITCHEN</text>
+                                    <text x="320" y="64" style={{fontSize:8,fill:'#fca5a5'}}>🔥 Fire Watch</text>
+                                    <circle cx="360" cy="95" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="353" y="99" style={{fontSize:11}}>💡</text>
+                                    <circle cx="395" cy="95" r="14" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="387" y="99" style={{fontSize:11}}>⚙️</text>
+                                    <text x="316" y="145" style={{fontSize:9,fill:'#f87171'}}>Acoustic: Active</text>
+                                </>); })()}
+                                {/* Entrance */}
+                                {(() => { const r = enriched[2]; return (<>
+                                    <rect x="460" y="28" width="150" height="130" rx="4" fill={r.motion ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.05)'} stroke="#059669" strokeWidth="1.5"/>
+                                    <text x="468" y="48" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>ENTRANCE</text>
+                                    <text x="468" y="64" style={{fontSize:8,fill:'#6ee7b7'}}>🚪 PIR Sensor</text>
+                                    <circle cx="510" cy="95" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="503" y="99" style={{fontSize:11}}>💡</text>
+                                    <text x="466" y="145" style={{fontSize:9,fill: r.motion ? '#34d399' : '#64748b'}}>Motion: {r.motion ? '● DETECTED' : '○ Clear'}</text>
+                                </>); })()}
 
-                                {/* Floor 2 label */}
+                                {/* Floor 2 */}
                                 <text x="10" y="178" style={{fontSize:11,fontWeight:'bold',fill:'#f472b6'}}>FLOOR 2</text>
-                                {/* Outer wall F2 */}
                                 <rect x="10" y="186" width="600" height="120" rx="6" fill="none" stroke="#334155" strokeWidth="3"/>
                                 {/* Baby Room */}
-                                <rect x="10" y="186" width="300" height="120" rx="4" fill="rgba(236,72,153,0.07)" stroke="#db2777" strokeWidth="1.5"/>
-                                <text x="20" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>BABY ROOM</text>
-                                <text x="20" y="222" style={{fontSize:8,fill:'#f9a8d4'}}>👶 Movement Monitor</text>
-                                <circle cx="155" cy="250" r="14" fill="rgba(236,72,153,0.15)" className="animate-ping" style={{animationDuration:'2s'}}/>
-                                <text x="125" y="295" style={{fontSize:9,fill:'#f472b6'}}>💡 Fan · IR Sensor</text>
+                                {(() => { const r = enriched[3]; return (<>
+                                    <rect x="10" y="186" width="300" height="120" rx="4" fill={r.motion ? 'rgba(236,72,153,0.18)' : 'rgba(236,72,153,0.05)'} stroke={r.motion ? '#ec4899' : '#db2777'} strokeWidth="1.5"/>
+                                    <text x="20" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>BABY ROOM</text>
+                                    <text x="20" y="221" style={{fontSize:8,fill:'#f9a8d4'}}>👶 Movement Monitor</text>
+                                    <circle cx="155" cy="252" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="148" y="256" style={{fontSize:11}}>💡</text>
+                                    <circle cx="190" cy="252" r="14" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="182" y="256" style={{fontSize:11}}>⚙️</text>
+                                    {r.motion && <circle cx="155" cy="252" r="24" fill="rgba(236,72,153,0.1)" stroke="#ec4899" strokeWidth="0.5" strokeDasharray="4 2"/>}
+                                    <text x="108" y="296" style={{fontSize:9,fill: r.motion ? '#f472b6' : '#64748b'}}>Motion: {r.motion ? '● ACTIVE' : '○ Clear'}</text>
+                                </>); })()}
                                 {/* Master Bedroom */}
-                                <rect x="310" y="186" width="300" height="120" rx="4" fill="rgba(99,102,241,0.07)" stroke="#4f46e5" strokeWidth="1.5"/>
-                                <text x="320" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>MASTER BEDROOM</text>
-                                <text x="320" y="295" style={{fontSize:9,fill:'#818cf8'}}>💡 Fan · Temp</text>
+                                {(() => { const r = enriched[4]; return (<>
+                                    <rect x="310" y="186" width="300" height="120" rx="4" fill="rgba(99,102,241,0.05)" stroke="#4f46e5" strokeWidth="1.5"/>
+                                    <text x="320" y="206" style={{fontSize:10,fill:'#94a3b8',fontWeight:'bold'}}>MASTER BEDROOM</text>
+                                    <circle cx="430" cy="252" r="14" fill={r.lightOn ? 'rgba(250,204,21,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.lightOn ? '#fbbf24' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="423" y="256" style={{fontSize:11}}>💡</text>
+                                    <circle cx="465" cy="252" r="14" fill={r.fanOn ? 'rgba(52,211,153,0.3)' : 'rgba(100,116,139,0.1)'} stroke={r.fanOn ? '#34d399' : '#475569'} strokeWidth="1.5"/>
+                                    <text x="457" y="256" style={{fontSize:11}}>⚙️</text>
+                                    <text x="318" y="296" style={{fontSize:9,fill:'#818cf8'}}>Temp: Nominal</text>
+                                </>); })()}
                             </svg>
                         </div>
 
-                        {/* Floor-wise Analytics Cards */}
+                        {/* Floor-wise Analytics Cards — live from state */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Floor 1 */}
-                            <div className="hc-glass rounded-2xl p-4">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
-                                    Floor 1 — Room Status
-                                </h3>
-                                <div className="space-y-2">
-                                    {[
-                                        { name: 'Living Room', badge: null, color: 'cyan' },
-                                        { name: 'Kitchen', badge: '🔥 Fire Watch', color: 'rose' },
-                                        { name: 'Main Entrance', badge: '🚪 Guest Detect', color: 'emerald' },
-                                    ].map(r => (
-                                        <div key={r.name} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5">
-                                            <div>
-                                                <span className="text-xs font-bold text-slate-300">{r.name}</span>
-                                                {r.badge && <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded bg-${r.color}-500/20 text-${r.color}-300 font-bold uppercase`}>{r.badge}</span>}
+                            {[{ label: 'Floor 1 — Room Status', color: 'violet', rooms: floor1 },
+                              { label: 'Floor 2 — Room Status', color: 'pink',   rooms: floor2 }].map(floor => (
+                                <div key={floor.label} className="hc-glass rounded-2xl p-4">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <span className={`w-2 h-2 bg-${floor.color}-400 rounded-full`}></span>
+                                        {floor.label}
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {floor.rooms.map(r => (
+                                            <div key={r.key} className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${r.motion ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-white/5 border-white/5'}`}>
+                                                <div>
+                                                    <span className="text-xs font-bold text-slate-300">{r.device?.name ?? r.label}</span>
+                                                    {r.badge && <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded bg-${r.badgeColor}-500/20 text-${r.badgeColor}-300 font-bold uppercase`}>{r.badge}</span>}
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${r.lightOn ? 'bg-yellow-400/20 text-yellow-300' : 'bg-slate-700 text-slate-500'}`}>💡 {r.lightOn ? 'ON' : 'OFF'}</span>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${r.fanOn ? 'bg-emerald-400/20 text-emerald-300' : 'bg-slate-700 text-slate-500'}`}>⚙️ {r.fanOn ? 'ON' : 'OFF'}</span>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${r.motion ? 'bg-cyan-400/20 text-cyan-300 animate-pulse' : 'bg-slate-700 text-slate-500'}`}>{r.motion ? '● Active' : '○ Clear'}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-1.5">
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">💡 ON</span>
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">⚙️ ON</span>
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold animate-pulse">● Active</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                            {/* Floor 2 */}
-                            <div className="hc-glass rounded-2xl p-4">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
-                                    Floor 2 — Room Status
-                                </h3>
-                                <div className="space-y-2">
-                                    {[
-                                        { name: 'Baby Room', badge: '👶 Movement', color: 'pink' },
-                                        { name: 'Master Bedroom', badge: null, color: 'indigo' },
-                                    ].map(r => (
-                                        <div key={r.name} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5">
-                                            <div>
-                                                <span className="text-xs font-bold text-slate-300">{r.name}</span>
-                                                {r.badge && <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded bg-${r.color}-500/20 text-${r.color}-300 font-bold uppercase`}>{r.badge}</span>}
-                                            </div>
-                                            <div className="flex gap-1.5">
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">💡 OFF</span>
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">⚙️ OFF</span>
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-500 font-bold">○ Clear</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* Right: AI Insights Sidebar */}
                     <div className="hc-glass rounded-2xl flex flex-col" style={{minHeight: '480px'}}>
-                        {/* Section 1: Gemini Insights */}
                         <div className="p-5 border-b border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent flex-1">
                             <div className="flex justify-between items-center mb-3">
                                 <h2 className="text-sm font-bold flex items-center gap-2">
@@ -342,37 +363,47 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                                 </h2>
                                 <span className="text-xs font-mono text-indigo-400 font-bold">87%</span>
                             </div>
-                            {/* Rate Limit Bar */}
                             <div className="mb-4">
                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                     <span className="uppercase font-bold tracking-widest">API Rate Limit</span>
                                     <span className="font-mono">Ready · 15s cycle</span>
                                 </div>
                                 <div className="w-full bg-slate-800 rounded-full h-1.5">
-                                    <div className="h-1.5 rounded-full bg-emerald-500/70 w-2/3 transition-all duration-1000"></div>
+                                    <div className="h-1.5 rounded-full bg-emerald-500/70 w-2/3"></div>
                                 </div>
                             </div>
-                            {/* Room-Specific Semantic Insights */}
+                            {/* Semantic insights — only show for AI-monitored rooms with motion */}
                             <div className="space-y-2 mb-4">
-                                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
-                                    🔥 <strong>Kitchen:</strong> Acoustic pattern matches cooking. No fire anomaly.
-                                </div>
-                                <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
-                                    🚪 <strong>Entrance:</strong> Motion matches resident arrival pattern.
-                                </div>
-                                <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs text-pink-200">
-                                    👶 <strong>Baby Room:</strong> No movement. Sleep cycle active.
-                                </div>
+                                {enriched[1].motion && (
+                                    <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200">
+                                        🔥 <strong>Kitchen:</strong> Acoustic activity detected. Monitoring for fire signature.
+                                    </div>
+                                )}
+                                {enriched[2].motion && (
+                                    <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
+                                        🚪 <strong>Entrance:</strong> Motion signature consistent with resident arrival.
+                                    </div>
+                                )}
+                                {enriched[3].motion && (
+                                    <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs text-pink-200">
+                                        👶 <strong>Baby Room:</strong> Movement detected. Sleep disruption probability: 34%.
+                                    </div>
+                                )}
+                                {!enriched[1].motion && !enriched[2].motion && !enriched[3].motion && (
+                                    <div className="p-2 rounded-lg bg-slate-800/50 border border-white/5 text-xs text-slate-400 italic">
+                                        No AI-monitored rooms active. Awaiting sensor events...
+                                    </div>
+                                )}
                             </div>
-                            {/* General AI summary */}
                             <div className="p-3 rounded-xl border bg-indigo-500/5 border-indigo-500/20">
                                 <p className="text-xs text-indigo-100 leading-relaxed italic">
-                                    &ldquo;System observing nominal patterns across all zones. Energy conservation mode active in Floor 2. AI predicts low-activity period for the next 2 hours.&rdquo;
+                                    &ldquo;{enriched.some(r => r.motion)
+                                        ? `Activity detected in ${enriched.filter(r => r.motion).map(r => r.label).join(', ')}. Automation protocols active.`
+                                        : 'System observing baseline patterns. Energy conservation mode active across all zones.'
+                                    }&rdquo;
                                 </p>
                             </div>
                         </div>
-
-                        {/* Section 2: Automation Rules */}
                         <div className="p-4 bg-slate-900/50 rounded-b-2xl border-t border-white/10">
                             <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Automation Rules</h4>
                             <ul className="text-[10px] space-y-1 text-slate-500">
@@ -383,7 +414,9 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {devices.map(device => {
