@@ -9,8 +9,8 @@ interface AnalyticsSummary {
     totalDevices: number;
     activeDevices: number;
     totalTelemetry: number;
-    lightTrend: Array<{ hour: number; value: number }>;
-    securityTrend: Array<{ hour: number; alerts: number }>;
+    lightTrend: Array<{ label: string; value: number }>;
+    securityTrend: Array<{ label: string; alerts: number }>;
     actionCounts: Record<string, number>;
 }
 
@@ -24,8 +24,6 @@ export default function Analytics() {
     const [userRole, setUserRole] = useState<string | null>(null);
     const [devices, setDevices] = useState<any[]>([]);
 
-    // Guest-only synthetic data state
-    const [guestHistory, setGuestHistory] = useState<{light: any[], security: any[]}>({ light: [], security: [] });
 
     const fetchAnalytics = async () => {
         if (userRole === 'GUEST') {
