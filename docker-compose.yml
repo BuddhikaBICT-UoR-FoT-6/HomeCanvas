@@ -1,0 +1,57 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: homecanvas-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: homecanvas
+    ports:
+      - "3306:3306"
+    networks:
+      - homecanvas-network
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: homecanvas-mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - homecanvas-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: homecanvas-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:mysql://mysql:3306/homecanvas
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - mysql
+      - mosquitto
+    networks:
+      - homecanvas-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: homecanvas-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080/api
+    depends_on:
+      - backend
+    networks:
+      - homecanvas-network
+
+networks:
+  homecanvas-network:
+    driver: bridge
