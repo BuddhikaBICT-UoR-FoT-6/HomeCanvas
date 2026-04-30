@@ -180,8 +180,8 @@ public class DataSimulatorService {
                 for (Device device : guest.getDevices()) {
                     // Determine realistic sensor values for this specific device
                     boolean motionDetected = simulateMotionDetection(now);
-                    int soundLevel = simulateSoundLevel(now, motionDetected);
-                    int lightLevel = simulateLightLevel(now);
+                    int soundLevel = simulateSoundLevel(now, motionDetected, device);
+                    int lightLevel = simulateLightLevel(now, device);
 
                     OccupancyTelemetryDTO telemetry = OccupancyTelemetryDTO.builder()
                         .macAddress(device.getMacAddress())
@@ -251,10 +251,16 @@ public class DataSimulatorService {
      * Simulate realistic sound levels
      * Range: 500-3500 (with spikes for glass break)
      */
-    private int simulateSoundLevel(LocalDateTime now, boolean motionDetected) {
-        // If motion detected, increase noise probability
-        if (motionDetected && random.nextInt(10) < 3) {
-            lastSoundLevel = Math.min(soundMax, lastSoundLevel + random.nextInt(500));
+    private int simulateSoundLevel(LocalDateTime now, boolean motionDetected, Device device) {
+        // Base sound level influenced by fan
+        int baseSound = soundMin;
+        if (Boolean.TRUE.equals(device.getLastCommandFanOn())) {
+            baseSound += 800 + random.nextInt(400); // Constant fan hum
+        }
+
+        // If motion detected, increase noise probability (footsteps, voices)
+        if (motionDetected) {
+            baseSound += 500 + random.nextInt(1000);
         }
 
         // Periodically simulate glass break (every 10 minutes, ~1 in 1000 chance per second)
@@ -267,21 +273,27 @@ public class DataSimulatorService {
         }
 
         // Smooth transitions (sound doesn't jump drastically)
-        int delta = random.nextInt(200) - 100;  // -100 to +100
-        int smoothedSound = lastSoundLevel + delta;
+        int delta = random.nextInt(100) - 50;
+        int smoothedSound = baseSound + delta;
         lastSoundLevel = Math.max(soundMin, Math.min(soundMax, smoothedSound));
 
         return lastSoundLevel;
     }
 
     /**
-     * Simulate realistic light levels based on time of day
+     * Simulate realistic light levels based on time of day AND LED status
      * Morning: Increasing
      * Midday: High
      * Evening: Decreasing
      * Night: Very low
+     * LED ON: Override to high
      */
-    private int simulateLightLevel(LocalDateTime now) {
+    private int simulateLightLevel(LocalDateTime now, Device device) {
+        // If LED is ON, it's bright regardless of time
+        if (Boolean.TRUE.equals(device.getLastCommandLedOn())) {
+            return 3200 + random.nextInt(800);
+        }
+
         int hour = now.getHour();
         int lightLevel;
 
