@@ -47,7 +47,6 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
     const navigate = useNavigate();
     const [userRole, setUserRole] = useState<string | null>(null);
     const [manualOverrides, setManualOverrides] = useState<Set<number>>(new Set());
-    const [simLogs, setSimLogs] = useState<{time: string, msg: string, type: string}[]>([]);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -91,20 +90,10 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                 const newState = !ctrl.ledOn;
                 deviceAPI.sendCommand(target.id, { ledOn: newState });
                 updateControl(target.id, { ledOn: newState });
-                setSimLogs(prev => [{
-                    time: new Date().toLocaleTimeString(),
-                    msg: `AI Auto: ${target.name} light turned ${newState ? 'ON' : 'OFF'}`,
-                    type: 'auto'
-                }, ...prev].slice(0, 5));
             } else {
                 const newState = !ctrl.servoOn;
                 deviceAPI.sendCommand(target.id, { fanOn: newState });
                 updateControl(target.id, { servoOn: newState });
-                setSimLogs(prev => [{
-                    time: new Date().toLocaleTimeString(),
-                    msg: `AI Auto: ${target.name} fan turned ${newState ? 'ON' : 'OFF'}`,
-                    type: 'auto'
-                }, ...prev].slice(0, 5));
             }
         }, 8000); // Dynamic event every 8 seconds
 
@@ -170,11 +159,6 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
             // User manual override persists
             if (userRole === 'GUEST') {
                 setManualOverrides(prev => new Set(prev).add(deviceId));
-                setSimLogs(prev => [{
-                    time: new Date().toLocaleTimeString(),
-                    msg: `User Override: ${devices.find(d => d.id === deviceId)?.name} light set to ${newState ? 'ON' : 'OFF'}`,
-                    type: 'manual'
-                }, ...prev].slice(0, 5));
             }
         } catch {
             updateControl(deviceId, { loading: false });
@@ -194,11 +178,6 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
             // User manual override persists
             if (userRole === 'GUEST') {
                 setManualOverrides(prev => new Set(prev).add(deviceId));
-                setSimLogs(prev => [{
-                    time: new Date().toLocaleTimeString(),
-                    msg: `User Override: ${devices.find(d => d.id === deviceId)?.name} fan set to ${newState ? 'ON' : 'OFF'}`,
-                    type: 'manual'
-                }, ...prev].slice(0, 5));
             }
         } catch {
             updateControl(deviceId, { loading: false });
