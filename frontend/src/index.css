@@ -107,6 +107,10 @@ h4 {
   .hc-security-glow {
     text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
   }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
 }
 
 @keyframes spin {

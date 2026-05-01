@@ -135,6 +135,20 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginF
                             'Sign In'
                         )}
                     </button>
+
+                    <div className="relative flex items-center py-2">
+                        <div className="flex-grow border-t border-slate-300/20"></div>
+                        <span className="flex-shrink mx-4 text-xs text-slate-500 uppercase tracking-widest font-bold">Or</span>
+                        <div className="flex-grow border-t border-slate-300/20"></div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => window.location.href = '/simulation'}
+                        className="w-full rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 font-bold text-cyan-400 shadow-lg transition hover:scale-105 hover:bg-cyan-500/20"
+                    >
+                        🚀 Try Simulation Mode
+                    </button>
                 </form>
 
                 {/* Footer link */}

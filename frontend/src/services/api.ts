@@ -77,5 +77,14 @@ export const analyticsAPI = {
     getSummary: (range: string = '24h') => API.get('/analytics/summary', { params: { range } }),
 };
 
+// ------------------------------------------------------------------------
+// HomeCanvas: Simulation API calls
+export const simulationAPI = {
+    start: () => API.post('/simulation/start'),
+    stop: () => API.post('/simulation/stop'),
+    getStatus: () => API.get('/simulation/status'),
+    getInfo: () => API.get('/simulation/info'),
+};
+
 // Export the API instance for direct access if needed
 export default API;
