@@ -119,6 +119,20 @@
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-mqtt</artifactId>
         </dependency>
+
+        <!-- Gemini Integration via REST API -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
+        <!-- HTTP Client for REST calls to Gemini API -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.2.1</version>
+        </dependency>
     </dependencies>
 
     <build>

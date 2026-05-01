@@ -29,5 +29,8 @@ public interface SensorEventRepository extends JpaRepository<SensorEvent, Long>{
 
     // Get only noise events above threshold (for intruder detection)
     List<SensorEvent> findByDeviceAndNoiseLevelGreaterThan(Device device, Integer threshold);
+
+    // Get sensor events after a specific timestamp
+    List<SensorEvent> findByDeviceAndTimestampAfter(Device device, LocalDateTime timestamp);
     
 } 
