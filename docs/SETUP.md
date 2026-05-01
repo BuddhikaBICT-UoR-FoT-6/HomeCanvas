@@ -256,6 +256,18 @@ For security alert console:
 
 ---
 
+## Simulation Mode (No Hardware Setup)
+
+If you don't have ESP32 hardware, you can still experience the platform using Simulation Mode:
+
+1. Start the Backend and Frontend as described in the sections above.
+2. Open `http://localhost:5173` in your browser.
+3. Click the **"🚀 Try Simulation Mode"** button on the login screen.
+4. Interact with the interactive floor plan (click rooms to trigger PIR sensors).
+5. Monitor real-time telemetry logs and sound sensor activity.
+
+---
+
 ## Accessing the Application
 
 1. Open browser: `http://localhost:5173`

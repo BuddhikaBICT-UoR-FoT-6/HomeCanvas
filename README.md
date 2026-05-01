@@ -58,6 +58,7 @@ HomeCanvas is a complete smart home automation system that bridges IoT edge devi
 - **Beautiful Login/Register** with background imagery
 - **Live Toast Notifications** for user feedback
 - **Sensor Data Visualization** with color-coded indicators
+- **Interactive Simulation Mode**: Full smart home map available without hardware or login
 
 ### IoT Features
 - **ESP32 Microcontroller** support

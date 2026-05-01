@@ -5,6 +5,7 @@ backend/.project
 backend/.settings/
 backend/*.jar
 backend/*.war
+backend/**/*.class
 backend/pom.xml.tag
 backend/pom.xml.releaseBackup
 backend/pom.xml.versionsBackup

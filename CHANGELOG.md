@@ -5,6 +5,31 @@ All notable changes to HomeCanvas project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-01
+
+### 🚀 Simulation Mode & AI Insights
+
+#### ✨ Simulation Mode (Hardware-Free Demo)
+- **Interactive Floor Plan**: Added a new `/simulation` route with a stunning, interactive smart home map.
+- **Program-Level Logic**: Implemented simulation engine that works without ESP32 hardware or user login.
+- **Sensor Simulation**: Added ability to click rooms to trigger PIR sensors and observe automated light/fan responses.
+- **Acoustic Monitoring**: Real-time sound level tracking with manual "Glass Break" event simulation.
+- **Public Access**: Added "Try Simulation Mode" button to login page for instant demo access.
+
+#### 🧠 AI & Analytics
+- **AI Insights Engine**: Integrated Gemini AI for occupancy pattern analysis and predictive insights.
+- **Pattern Analysis**: Automated daily analysis of sensor data to generate occupancy profiles.
+- **AI Controller**: New endpoints for fetching AI insights and triggering manual analysis.
+- **Confidence Engine**: Logic for determining occupancy confidence scores based on multi-sensor data.
+
+#### 🔧 Backend & IoT Infrastructure
+- **Data Simulator Service**: Enhanced background simulator for generating realistic telemetry without hardware.
+- **Decision Matrix**: Refined logic for PIR-based device control (lights, fans).
+- **Public Simulation Info**: Updated security config to allow public access to simulation metadata.
+- **API Cleanup**: Removed unused imports and variables in core services for better performance.
+
+---
+
 ## [1.1.0] - 2026-04-24
 
 ### 🛠️ System Stabilization & UI Refinement

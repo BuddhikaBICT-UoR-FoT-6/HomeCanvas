@@ -283,7 +283,72 @@ Authorization: Bearer {token}
 
 ---
 
-### 3. IoT Endpoints
+---
+
+### 3. Simulation Endpoints
+
+#### Get Simulation Info
+(Publicly accessible - used for demo info)
+```http
+GET /simulation/info
+```
+
+#### Start Simulation
+(Admin only)
+```http
+POST /simulation/start
+Authorization: Bearer {admin_token}
+```
+
+#### Stop Simulation
+(Admin only)
+```http
+POST /simulation/stop
+Authorization: Bearer {admin_token}
+```
+
+#### Get Simulation Status
+(Admin only)
+```http
+GET /simulation/status
+Authorization: Bearer {admin_token}
+```
+
+---
+
+### 4. AI & Analytics Endpoints
+
+#### Get Latest AI Insights
+(User/Admin)
+```http
+GET /iot/ai/insights
+Authorization: Bearer {token}
+```
+
+#### Get Device Occupancy Pattern
+(User/Admin)
+```http
+GET /iot/ai/pattern/{deviceId}
+Authorization: Bearer {token}
+```
+
+#### Get Pattern History
+(User/Admin)
+```http
+GET /iot/ai/history/{deviceId}
+Authorization: Bearer {token}
+```
+
+#### Trigger Manual AI Analysis
+(Admin only)
+```http
+POST /iot/ai/analyze/{deviceId}
+Authorization: Bearer {admin_token}
+```
+
+---
+
+### 5. IoT Endpoints
 
 #### Submit Device Telemetry
 
