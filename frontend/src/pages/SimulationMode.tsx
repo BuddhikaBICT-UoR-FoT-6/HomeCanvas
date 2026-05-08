@@ -84,7 +84,7 @@ export default function SimulationMode() {
     // AI States
     const [aiInsights, setAiInsights] = useState<string>("Analyzing initial environment...");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isSimulating, setIsSimulating] = useState(true);
+    const [isSimulating] = useState(true);
     const [confidenceScore, setConfidenceScore] = useState(0.85);
     const [threatLevel, setThreatLevel] = useState<'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('NONE');
     
