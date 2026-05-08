@@ -385,6 +385,7 @@ export default function DeviceDashboard({ theme, onToggleTheme }: DeviceDashboar
                 </div>
             )}
 
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {devices.map(device => {
                     const isOnline = device.onlineStatus?.toLowerCase() === 'online';
                     const ctrl = getControls(device.id);
