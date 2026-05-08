@@ -172,6 +172,7 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister }: LoginF
                         className="w-full rounded-lg border-2 border-cyan-500/50 bg-cyan-500/10 px-4 py-3 font-bold text-cyan-400 shadow-lg transition hover:scale-105 hover:bg-cyan-500/20 disabled:opacity-50"
                     >
                         ✨ Special Guest Access (Demo)
+                    </button>
                 </form>
 
                 {/* Footer link */}
